@@ -53,6 +53,13 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ count = 0 }) => {
           <span>Instant SVG code & 2x PNG export</span>
         </div>
       </div>
+
+      <div className="w-full max-w-[240px] mt-3 p-2 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-[10px] text-blue-700 dark:text-blue-300 flex items-center justify-between">
+        <span>Quick open in Figma:</span>
+        <kbd className="font-mono px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 text-slate-800 dark:text-slate-200">
+          Ctrl+Alt+P / ⌥⌘P
+        </kbd>
+      </div>
     </div>
   );
 };

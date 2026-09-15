@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NodeInspectionData } from '../../types/messages';
 import { transpileToTailwind } from '../../utils/tailwind-transpiler';
 import { Code2, Copy, Check } from 'lucide-react';
+import { CodeHighlighter } from './CodeHighlighter';
 
 interface CodeViewerProps {
   data: NodeInspectionData;
@@ -10,7 +11,8 @@ interface CodeViewerProps {
 }
 
 export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText }) => {
-  const [tab, setTab] = useState<'tailwind' | 'css'>('tailwind');
+  // Default to CSS per user request
+  const [tab, setTab] = useState<'css' | 'tailwind'>('css');
 
   const tailwindCode = transpileToTailwind(data);
 
@@ -23,8 +25,29 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
   };
 
   const cssCode = formatCss();
-  const activeCode = tab === 'tailwind' ? tailwindCode : cssCode;
+  const activeCode = tab === 'css' ? cssCode : tailwindCode;
   const isCopied = copiedText === activeCode;
+
+  // Keyboard shortcuts: 1/C for CSS, 2/T for Tailwind, Ctrl/Cmd+C or Alt+C for Copy
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if typing in an input/textarea
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+
+      if (e.key === '1' || (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey)) {
+        setTab('css');
+      } else if (e.key === '2' || (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.metaKey && !e.altKey)) {
+        setTab('tailwind');
+      } else if ((e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'c') {
+        onCopy(activeCode, tab === 'css' ? 'CSS styles' : 'Tailwind classes');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeCode, tab, onCopy]);
 
   return (
     <div className="p-3 border-b border-slate-200 dark:border-slate-800">
@@ -33,32 +56,36 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
           <Code2 size={12} className="text-slate-500 dark:text-slate-400" />
           <div className="flex rounded bg-slate-100 dark:bg-slate-800 p-0.5 text-[11px] font-medium">
             <button
-              onClick={() => setTab('tailwind')}
-              className={`px-2 py-0.5 rounded transition ${
-                tab === 'tailwind'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 font-semibold shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              Tailwind
-            </button>
-            <button
               onClick={() => setTab('css')}
-              className={`px-2 py-0.5 rounded transition ${
+              className={`flex items-center gap-1 px-2 py-0.5 rounded transition ${
                 tab === 'css'
                   ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 font-semibold shadow-xs'
                   : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
+              title="Shortcut: Press '1' or 'C'"
             >
-              CSS
+              <span>CSS</span>
+              <kbd className="text-[9px] font-mono opacity-50 px-1 py-0.2 rounded bg-slate-200/60 dark:bg-slate-800/80">1</kbd>
+            </button>
+            <button
+              onClick={() => setTab('tailwind')}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded transition ${
+                tab === 'tailwind'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 font-semibold shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+              title="Shortcut: Press '2' or 'T'"
+            >
+              <span>Tailwind</span>
+              <kbd className="text-[9px] font-mono opacity-50 px-1 py-0.2 rounded bg-slate-200/60 dark:bg-slate-800/80">2</kbd>
             </button>
           </div>
         </div>
 
         <button
-          onClick={() => onCopy(activeCode, tab === 'tailwind' ? 'Tailwind classes' : 'CSS styles')}
+          onClick={() => onCopy(activeCode, tab === 'css' ? 'CSS styles' : 'Tailwind classes')}
           className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition"
-          title="Copy to clipboard"
+          title="Copy to clipboard (Ctrl+C / Cmd+C)"
         >
           {isCopied ? (
             <>
@@ -74,10 +101,8 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
         </button>
       </div>
 
-      <div className="relative rounded-md bg-slate-900 text-slate-100 p-2.5 font-mono text-xs overflow-x-auto max-h-48 scrollbar-thin border border-slate-800">
-        <pre className="whitespace-pre-wrap break-words leading-relaxed select-all">
-          {activeCode || '/* No styles extracted */'}
-        </pre>
+      <div className="relative rounded-md bg-slate-900 text-slate-100 p-2.5 overflow-x-auto max-h-56 scrollbar-thin border border-slate-800">
+        <CodeHighlighter code={activeCode} language={tab} />
       </div>
     </div>
   );

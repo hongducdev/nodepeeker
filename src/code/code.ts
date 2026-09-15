@@ -8,6 +8,12 @@ figma.showUI(__html__, {
   themeColors: true,
   title: 'Dev Inspector',
 });
+try {
+  figma.root.setRelaunchData({ open: 'Inspect CSS & Tailwind' });
+} catch {
+  // Ignore if root relaunch not supported
+}
+
 
 
 let selectionSequence = 0;

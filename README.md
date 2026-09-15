@@ -12,10 +12,12 @@
 
 ## Features
 
-### 🔍 Inspect Code Viewer
-- **Tailwind CSS Generation:** Automatically maps Figma layer properties (dimensions, auto-layout flexbox, gaps, padding, colors, borders, shadows, typography) to Tailwind CSS utility classes.
-- **Pure CSS Declarations:** Generates standard, modern CSS rule sets ready to paste into your stylesheets.
-- **One-Click Copy:** Instant clipboard copy for all generated classes or declarations with animated toast feedback.
+### 💻 Inspect Code Viewer (Default: Pure CSS)
+- **Pure CSS First:** Automatically displays standard, clean CSS declarations by default with live color chips, line numbers, and formatted rules ready to paste.
+- **Syntax Highlighting:** Real-time token highlighting for properties, values, units, hex colors, and Tailwind utility categories.
+- **Tailwind CSS Generation:** Easily toggle to Tailwind utility classes with color-coded token badges.
+- **Keyboard Shortcuts:** Press `1` or `C` for CSS, `2` or `T` for Tailwind, and `Ctrl+C` / `Cmd+C` to copy active code.
+- **Quick Launch in Figma:** Press `Ctrl+Alt+P` (Windows) / `Cmd+Option+P` (Mac) to re-run the plugin from anywhere on canvas, or `Shift+I` to pick from the Plugins drawer.
 
 ### 🎨 Quick Color Copier
 - **Automatic Palette Detection:** Extracts all solid fills and strokes applied to the selected layer.

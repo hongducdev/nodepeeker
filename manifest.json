@@ -5,6 +5,9 @@
   "main": "dist/code.js",
   "ui": "dist/index.html",
   "editorType": ["figma"],
+  "relaunchButtons": [
+    { "command": "open", "text": "Inspect CSS & Tailwind", "multipleSelection": true }
+  ],
   "networkAccess": {
     "allowedDomains": ["none"]
   }
