@@ -5,6 +5,7 @@
   "main": "dist/code.js",
   "ui": "dist/index.html",
   "editorType": ["figma"],
+  "enablePrivatePluginApi": true,
   "relaunchButtons": [
     { "command": "open", "name": "NodePeeker", "multipleSelection": true }
   ],

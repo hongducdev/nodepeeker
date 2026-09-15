@@ -14,6 +14,18 @@ try {
   // Ignore if root relaunch not supported
 }
 
+/** `figma.fileKey` is only populated for private plugins whose manifest enables
+ *  `enablePrivatePluginApi`; guard the read so a public build degrades to a node ID. */
+function readFileContext() {
+  let fileKey: string | undefined;
+  try {
+    fileKey = typeof figma.fileKey === 'string' ? figma.fileKey : undefined;
+  } catch {
+    fileKey = undefined;
+  }
+  return { payload: { fileKey, fileName: figma.root.name || 'Untitled' } };
+}
+
 let selectionSequence = 0;
 
 async function handleSelectionChange() {
@@ -69,6 +81,7 @@ figma.on('selectionchange', handleSelectionChange);
 
 figma.ui.onmessage = async (msg: UIToPluginMessage) => {
   if (msg.type === 'INIT_REQUEST') {
+    figma.ui.postMessage({ type: 'FILE_CONTEXT', ...readFileContext() });
     await handleSelectionChange();
     return;
   }

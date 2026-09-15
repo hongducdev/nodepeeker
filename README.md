@@ -34,6 +34,10 @@
 - **Save SVG:** One-click download of SVG vector assets without opening Figma's nested export drawer.
 - **Save PNG @2x:** Exports high-resolution raster image files instantly.
 
+### 🔗 Copyable Layer Link
+- **Deep Link to the Selected Layer:** A compact link bar sits directly under the header and shows the selected layer's canonical `https://www.figma.com/design/<key>/<file>?node-id=…` URL — the same link Figma's own **Copy link** produces. Click it to copy.
+- **Graceful Degradation:** When no file key is available — a publicly published plugin, or an unsaved draft — the bar copies the node id in **URL form** (`3844-702`) instead and says so, naming the API form (`3844:702`) that Figma's Plugin API expects.
+
 ### 🌓 Native Figma Theme Integration
 - Automatically matches Figma's interface theme (Light & Dark modes) using native `figma.ui.themeColors`.
 

@@ -70,6 +70,9 @@ Select any layer on your canvas (frame, button, text, component instance, vector
 - **Box Model:** View outer dimensions (width × height), corner radii, 4-sided padding (top, right, bottom, left), and auto-layout gap. Click any measurement to copy its value.
 - **Colors:** View all detected fills and strokes. Toggle between **HEX**, **RGB**, and **HSL** formats. Click any color card to copy the code directly to your clipboard.
 - **1-Click Export:** Click **Copy SVG**, **SVG File**, or **PNG @2x** to immediately export clean assets without opening Figma's nested export drawer.
+- **Copyable Layer Link:** A compact link bar sits directly under the header and shows a deep link to the selected layer — the same URL Figma's own **Copy link** produces. Click it to copy the link.
+
+  **A full link requires the plugin to keep `enablePrivatePluginApi: true` in `manifest.json` and to remain private.** Publishing the plugin publicly **permanently disables `figma.fileKey`**, and a public plugin never receives one regardless of the manifest. Before that — or in an unsaved draft — the bar degrades instead of breaking: it shows and copies the node id in **URL form** (`3844-702`) and names the API form (`3844:702`) that Figma's Plugin API expects, so you can still paste a `?node-id=` value or resolve the layer.
 
 ---
 

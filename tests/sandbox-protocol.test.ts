@@ -18,7 +18,8 @@ const selection: unknown[] = [];
 
 const figmaMock = {
   showUI: vi.fn(),
-  root: { setRelaunchData: vi.fn() },
+  fileKey: 'aXrGAc4tTcMFWklkcboC1l' as string | undefined,
+  root: { setRelaunchData: vi.fn(), name: 'Frameflow (Copy)' },
   on: vi.fn(),
   currentPage: {
     get selection() {
@@ -63,6 +64,39 @@ beforeEach(() => {
   exportAsync.mockClear();
   selection.length = 0;
   selection.push(node());
+});
+
+describe('sandbox file context', () => {
+  it('posts the file key and name on init so the UI can build a deep link', async () => {
+    figmaMock.fileKey = 'aXrGAc4tTcMFWklkcboC1l';
+    await send({ type: 'INIT_REQUEST' });
+
+    const context = posted.find((m) => m.type === 'FILE_CONTEXT');
+    expect(context).toBeDefined();
+    expect(context?.payload).toEqual({
+      fileKey: 'aXrGAc4tTcMFWklkcboC1l',
+      fileName: 'Frameflow (Copy)',
+    });
+  });
+
+  it('omits the file key when the plugin has no private-plugin access', async () => {
+    // Public plugins and unsaved files never receive a key; the field must be absent
+    // rather than a placeholder, so the UI falls back instead of building a dead URL.
+    figmaMock.fileKey = undefined;
+    await send({ type: 'INIT_REQUEST' });
+
+    const context = posted.find((m) => m.type === 'FILE_CONTEXT');
+    expect(context?.payload).toEqual({ fileKey: undefined, fileName: 'Frameflow (Copy)' });
+  });
+
+  it('falls back to a name when the document has none', async () => {
+    figmaMock.root.name = '';
+    await send({ type: 'INIT_REQUEST' });
+
+    const context = posted.find((m) => m.type === 'FILE_CONTEXT');
+    expect(context?.payload).toMatchObject({ fileName: 'Untitled' });
+    figmaMock.root.name = 'Frameflow (Copy)';
+  });
 });
 
 describe('sandbox export protocol', () => {

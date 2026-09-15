@@ -81,8 +81,17 @@ export type SelectionState =
   | { selected: true; data: NodeInspectionData }
   | { selected: false; count: number };
 
+/** Document-level metadata. Constant for the session, so it is sent once rather than
+ *  riding along on every selection change. `fileKey` is absent unless the manifest sets
+ *  `enablePrivatePluginApi` and the plugin is private. */
+export interface FileContext {
+  fileKey?: string;
+  fileName: string;
+}
+
 export type PluginToUIMessage =
   | { type: 'SELECTION_CHANGE'; payload: SelectionState }
+  | { type: 'FILE_CONTEXT'; payload: FileContext }
   | {
       type: 'EXPORT_RESULT';
       payload:

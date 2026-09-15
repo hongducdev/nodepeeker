@@ -38,6 +38,12 @@ describe('manifest.json validation', () => {
     });
   });
 
+  it('keeps the flag that makes figma.fileKey readable', () => {
+    // The sole prerequisite for building a deep link in the link bar; removing it
+    // silently degrades every link to the node-id fallback.
+    expect(manifest.enablePrivatePluginApi).toBe(true);
+  });
+
   it('verifies paths in main and ui point to expected dist targets', () => {
     expect(manifest.main).toBe('dist/code.js');
     expect(manifest.ui).toBe('dist/index.html');

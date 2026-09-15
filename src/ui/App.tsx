@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { PluginToUIMessage, SelectionState, UIToPluginMessage } from '../types/messages';
+import type { FileContext, PluginToUIMessage, SelectionState, UIToPluginMessage } from '../types/messages';
 import { Header } from './components/Header';
+import { NodeLink } from './components/NodeLink';
 import { BoxModel } from './components/BoxModel';
 import { ColorPalette } from './components/ColorPalette';
 import { BorderStyle } from './components/BorderStyle';
@@ -25,6 +26,7 @@ const downloadBlob = (blob: Blob, filename: string) => {
 export const App: React.FC = () => {
   useFigmaTheme();
   const [selection, setSelection] = useState<SelectionState>({ selected: false, count: 0 });
+  const [fileContext, setFileContext] = useState<FileContext>({ fileName: '' });
   const [isExporting, setIsExporting] = useState(false);
   const { copy, copiedText, copiedLabel } = useClipboard();
 
@@ -61,6 +63,11 @@ export const App: React.FC = () => {
     const onMessage = (event: MessageEvent) => {
       const msg = event.data?.pluginMessage as PluginToUIMessage | undefined;
       if (!msg) return;
+
+      if (msg.type === 'FILE_CONTEXT') {
+        setFileContext(msg.payload);
+        return;
+      }
 
       if (msg.type === 'SELECTION_CHANGE') {
         setSelection(msg.payload);
@@ -125,6 +132,13 @@ export const App: React.FC = () => {
       ) : (
         <>
           <Header data={selection.data} />
+          <NodeLink
+            nodeId={selection.data.id}
+            fileKey={fileContext.fileKey}
+            fileName={fileContext.fileName}
+            onCopy={copy}
+            copiedText={copiedText}
+          />
           <div className="flex-1 overflow-y-auto divide-y divide-surface0 scrollbar-thin">
             <BoxModel
               boxModel={selection.data.boxModel}
