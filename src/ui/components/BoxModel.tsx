@@ -1,14 +1,16 @@
 import React from 'react';
-import { BoxModelData } from '../../types/messages';
+import { BoxModelData, BorderData } from '../../types/messages';
 import { Maximize2, MoveHorizontal, MoveVertical } from 'lucide-react';
 
 interface BoxModelProps {
   boxModel: BoxModelData;
+  border?: BorderData;
   layoutMode?: 'NONE' | 'HORIZONTAL' | 'VERTICAL';
   onCopy: (val: string, label: string) => void;
 }
 
-export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, layoutMode, onCopy }) => {
+export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, border, layoutMode, onCopy }) => {
+
   const { width, height, paddingTop, paddingRight, paddingBottom, paddingLeft, gap, cornerRadius } = boxModel;
 
   const renderRadius = () => {
@@ -34,15 +36,45 @@ export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, layoutMode, onCopy
           <Maximize2 size={12} />
           <span>Box Model & Layout</span>
         </div>
-        {radiusStr !== '0' && (
-          <button
-            onClick={() => onCopy(radiusStr, `Radius ${radiusStr}`)}
-            className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-            title="Click to copy radius"
-          >
-            r: {radiusStr}
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {border && (() => {
+            const iw = border.individualWeights;
+            const label = iw
+              ? `${iw.top} ${iw.right} ${iw.bottom} ${iw.left}px`
+              : `${border.strokeWeight}px`;
+            const copyValue = iw
+              ? [
+                  iw.top > 0 ? `border-top: ${iw.top}px ${border.strokeStyle} ${border.color};` : null,
+                  iw.right > 0 ? `border-right: ${iw.right}px ${border.strokeStyle} ${border.color};` : null,
+                  iw.bottom > 0 ? `border-bottom: ${iw.bottom}px ${border.strokeStyle} ${border.color};` : null,
+                  iw.left > 0 ? `border-left: ${iw.left}px ${border.strokeStyle} ${border.color};` : null,
+                ].filter(Boolean).join('\n')
+              : `${border.strokeWeight}px ${border.strokeStyle} ${border.color}`;
+
+            return (
+              <button
+                onClick={() => onCopy(copyValue, 'Border')}
+                className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 transition flex items-center gap-1"
+                title="Click to copy border"
+              >
+                <span
+                  className="inline-block w-2 h-2 rounded-full border border-amber-400"
+                  style={{ backgroundColor: border.color }}
+                />
+                <span>b: {label}</span>
+              </button>
+            );
+          })()}
+          {radiusStr !== '0' && (
+            <button
+              onClick={() => onCopy(radiusStr, `Radius ${radiusStr}`)}
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+              title="Click to copy radius"
+            >
+              r: {radiusStr}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Outer geometry box */}

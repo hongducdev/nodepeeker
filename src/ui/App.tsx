@@ -3,6 +3,7 @@ import { PluginToUIMessage, SelectionState, UIToPluginMessage } from '../types/m
 import { Header } from './components/Header';
 import { BoxModel } from './components/BoxModel';
 import { ColorPalette } from './components/ColorPalette';
+import { BorderStyle } from './components/BorderStyle';
 import { CodeViewer } from './components/CodeViewer';
 import { QuickExport } from './components/QuickExport';
 import { EmptyState } from './components/EmptyState';
@@ -79,11 +80,17 @@ export const App: React.FC = () => {
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 scrollbar-thin">
             <BoxModel
               boxModel={selection.data.boxModel}
+              border={selection.data.border}
               layoutMode={selection.data.layoutMode}
               onCopy={copy}
             />
             <ColorPalette
               colors={selection.data.colors}
+              onCopy={copy}
+              copiedText={copiedText}
+            />
+            <BorderStyle
+              border={selection.data.border}
               onCopy={copy}
               copiedText={copiedText}
             />

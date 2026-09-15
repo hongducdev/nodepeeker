@@ -156,14 +156,20 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
     }
   }
   let border: BorderData | undefined;
-  if ('strokes' in node && Array.isArray(node.strokes)) {
+  if ('strokes' in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
     const visibleStroke = node.strokes.find((s) => s.visible !== false);
-    if (visibleStroke && visibleStroke.type === 'SOLID') {
-      const strokeColor = rgbToHex(
-        visibleStroke.color.r,
-        visibleStroke.color.g,
-        visibleStroke.color.b
-      );
+    if (visibleStroke) {
+      let strokeColor = '#000000';
+      if (visibleStroke.type === 'SOLID') {
+        strokeColor = rgbToHex(
+          visibleStroke.color.r,
+          visibleStroke.color.g,
+          visibleStroke.color.b
+        );
+      } else {
+        const strokeToken = colors.find((c) => c.source === 'stroke');
+        if (strokeToken) strokeColor = strokeToken.hex;
+      }
 
       let uniformWeight = 0;
       if ('strokeWeight' in node && typeof node.strokeWeight === 'number') {
@@ -193,6 +199,10 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
         }
       }
 
+      if (uniformWeight === 0 && !individualWeights) {
+        uniformWeight = 1;
+      }
+
       let strokeStyle: 'solid' | 'dashed' | 'dotted' = 'solid';
       let dashPattern: number[] | undefined;
       if ('dashPattern' in node && Array.isArray(node.dashPattern) && node.dashPattern.length > 0) {
@@ -209,29 +219,27 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
         strokeAlign = node.strokeAlign as 'INSIDE' | 'OUTSIDE' | 'CENTER';
       }
 
-      const hasWeight = uniformWeight > 0 || (individualWeights && (individualWeights.top > 0 || individualWeights.right > 0 || individualWeights.bottom > 0 || individualWeights.left > 0));
-      if (hasWeight) {
-        border = {
-          strokeWeight: uniformWeight,
-          individualWeights,
-          strokeAlign,
-          strokeStyle,
-          dashPattern,
-          color: strokeColor,
-        };
+      border = {
+        strokeWeight: uniformWeight,
+        individualWeights,
+        strokeAlign,
+        strokeStyle,
+        dashPattern,
+        color: strokeColor,
+      };
 
-        // Ensure CSS includes border declarations
-        if (individualWeights) {
-          if (individualWeights.top > 0) css['border-top'] = `${individualWeights.top}px ${strokeStyle} ${strokeColor}`;
-          if (individualWeights.right > 0) css['border-right'] = `${individualWeights.right}px ${strokeStyle} ${strokeColor}`;
-          if (individualWeights.bottom > 0) css['border-bottom'] = `${individualWeights.bottom}px ${strokeStyle} ${strokeColor}`;
-          if (individualWeights.left > 0) css['border-left'] = `${individualWeights.left}px ${strokeStyle} ${strokeColor}`;
-        } else if (uniformWeight > 0) {
-          css['border'] = `${uniformWeight}px ${strokeStyle} ${strokeColor}`;
-        }
+      if (individualWeights) {
+        if (individualWeights.top > 0) css['border-top'] = `${individualWeights.top}px ${strokeStyle} ${strokeColor}`;
+        if (individualWeights.right > 0) css['border-right'] = `${individualWeights.right}px ${strokeStyle} ${strokeColor}`;
+        if (individualWeights.bottom > 0) css['border-bottom'] = `${individualWeights.bottom}px ${strokeStyle} ${strokeColor}`;
+        if (individualWeights.left > 0) css['border-left'] = `${individualWeights.left}px ${strokeStyle} ${strokeColor}`;
+      } else if (uniformWeight > 0) {
+        css['border'] = `${uniformWeight}px ${strokeStyle} ${strokeColor}`;
       }
     }
   }
+
+
 
 
 
