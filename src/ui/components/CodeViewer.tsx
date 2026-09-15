@@ -10,9 +10,19 @@ interface CodeViewerProps {
   copiedText: string | null;
 }
 
+type CodeTab = 'css' | 'tailwind' | 'svg';
+
+const TAB_ORDER: readonly CodeTab[] = ['css', 'tailwind', 'svg'];
+
+const TAB_META: Record<CodeTab, { label: string; digit: string; letter: string; copyLabel: string }> = {
+  css: { label: 'CSS', digit: '1', letter: 'c', copyLabel: 'CSS styles' },
+  tailwind: { label: 'Tailwind', digit: '2', letter: 't', copyLabel: 'Tailwind classes' },
+  svg: { label: 'SVG', digit: '3', letter: 's', copyLabel: 'SVG markup' },
+};
+
 export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText }) => {
   // Default to CSS per user request
-  const [tab, setTab] = useState<'css' | 'tailwind'>('css');
+  const [tab, setTab] = useState<CodeTab>('css');
 
   const tailwindCode = transpileToTailwind(data);
 
@@ -36,11 +46,15 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
     return entries.map(([prop, val]) => `${prop}: ${val};`).join('\n');
   };
 
-  const cssCode = formatCss();
-  const activeCode = tab === 'css' ? cssCode : tailwindCode;
+  const codeByTab: Record<CodeTab, string> = {
+    css: formatCss(),
+    tailwind: tailwindCode,
+    svg: data.svg ?? '',
+  };
+  const activeCode = codeByTab[tab];
   const isCopied = copiedText === activeCode;
 
-  // Keyboard shortcuts: 1/C for CSS, 2/T for Tailwind, Ctrl/Cmd+C or Alt+C for Copy
+  // Keyboard shortcuts: 1/C CSS, 2/T Tailwind, 3/S SVG, Ctrl/Cmd+C copy active code.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't intercept if typing in an input/textarea
@@ -48,12 +62,24 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
         return;
       }
 
-      if (e.key === '1' || (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey)) {
-        setTab('css');
-      } else if (e.key === '2' || (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.metaKey && !e.altKey)) {
-        setTab('tailwind');
-      } else if ((e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'c') {
-        onCopy(activeCode, tab === 'css' ? 'CSS styles' : 'Tailwind classes');
+      const isPlain = !e.ctrlKey && !e.metaKey && !e.altKey;
+      if (isPlain) {
+        const next = TAB_ORDER.find(
+          (id) => TAB_META[id].digit === e.key || TAB_META[id].letter === e.key.toLowerCase()
+        );
+        if (next) {
+          setTab(next);
+          return;
+        }
+      }
+
+      if ((e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'c') {
+        // Mirror the Copy button's disabled state: never copy an empty tab
+        // (e.g. a node whose SVG export failed), which would clear the
+        // clipboard and report a copy that did not happen.
+        if (activeCode) {
+          onCopy(activeCode, TAB_META[tab].copyLabel);
+        }
       }
     };
 
@@ -67,36 +93,34 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
         <div className="flex items-center gap-1.5">
           <Code2 size={12} className="text-overlay1" />
           <div className="flex rounded bg-surface0 p-0.5 text-[11px] font-medium">
-            <button
-              onClick={() => setTab('css')}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded transition ${
-                tab === 'css'
-                  ? 'bg-surface2 text-blue font-semibold shadow-xs'
-                  : 'text-overlay1 hover:text-text'
-              }`}
-              title="Shortcut: Press '1' or 'C'"
-            >
-              <span>CSS</span>
-              <kbd className="text-[9px] font-mono opacity-50 px-1 py-0.2 rounded bg-surface1/60">1</kbd>
-            </button>
-            <button
-              onClick={() => setTab('tailwind')}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded transition ${
-                tab === 'tailwind'
-                  ? 'bg-surface2 text-blue font-semibold shadow-xs'
-                  : 'text-overlay1 hover:text-text'
-              }`}
-              title="Shortcut: Press '2' or 'T'"
-            >
-              <span>Tailwind</span>
-              <kbd className="text-[9px] font-mono opacity-50 px-1 py-0.2 rounded bg-surface1/60">2</kbd>
-            </button>
+            {TAB_ORDER.map((id) => {
+              const meta = TAB_META[id];
+              const isActive = tab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setTab(id)}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded transition ${
+                    isActive
+                      ? 'bg-surface2 text-blue font-semibold shadow-xs'
+                      : 'text-overlay1 hover:text-text'
+                  }`}
+                  title={`Shortcut: Press '${meta.digit}' or '${meta.letter.toUpperCase()}'`}
+                >
+                  <span>{meta.label}</span>
+                  <kbd className="text-[9px] font-mono opacity-50 px-1 py-0.2 rounded bg-surface1/60">
+                    {meta.digit}
+                  </kbd>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <button
-          onClick={() => onCopy(activeCode, tab === 'css' ? 'CSS styles' : 'Tailwind classes')}
-          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded bg-surface0 hover:bg-surface1 text-subtext1 transition"
+          onClick={() => onCopy(activeCode, TAB_META[tab].copyLabel)}
+          disabled={!activeCode}
+          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded bg-surface0 hover:bg-surface1 text-subtext1 transition disabled:opacity-40 disabled:cursor-not-allowed"
           title="Copy to clipboard (Ctrl+C / Cmd+C)"
         >
           {isCopied ? (

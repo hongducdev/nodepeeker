@@ -15,7 +15,7 @@ Initialize the project workspace with a modern build pipeline supporting both th
 ## Requirements
 - **Functional:**
   - Valid `manifest.json` configured with `"editorType": ["figma"]`, `"api": "1.0.0"`, `"main": "dist/code.js"`, and `"ui": "dist/index.html"`.
-  - Configured scripts: `npm run dev` (watch mode) and `npm run build` (production singlefile bundle).
+  - Configured scripts: `npm run dev:ui` + `npm run watch:code` (watch mode) and `npm run build` (production singlefile bundle).
 - **Non-functional:**
   - TypeScript strict mode enabled for both sandbox and UI code.
   - Zero external CDN dependencies in the final bundle (Figma iframe is offline-safe).
@@ -23,7 +23,7 @@ Initialize the project workspace with a modern build pipeline supporting both th
 ## Architecture
 Two compilation targets:
 1. `code.ts` compiled to `dist/code.js` via Vite library mode or `esbuild`/`tsc` targeting ES6 (compatible with Figma QuickJS engine).
-2. `src/index.html` + `src/ui/main.tsx` compiled to a single self-contained `dist/index.html` via `vite-plugin-singlefile`.
+2. `src/ui/index.html` + `src/ui/main.tsx` compiled to a single self-contained `dist/index.html` via `vite-plugin-singlefile`.
 
 ## Related Code Files
 - Create: `package.json`

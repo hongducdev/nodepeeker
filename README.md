@@ -16,7 +16,8 @@
 - **Pure CSS First:** Automatically displays standard, clean CSS declarations by default with live color chips, line numbers, and formatted rules ready to paste.
 - **Syntax Highlighting:** Real-time token highlighting for properties, values, units, hex colors, and Tailwind utility categories.
 - **Tailwind CSS Generation:** Easily toggle to Tailwind utility classes with color-coded token badges.
-- **Keyboard Shortcuts:** Press `1` or `C` for CSS, `2` or `T` for Tailwind, and `Ctrl+C` / `Cmd+C` to copy active code.
+- **SVG Markup:** Switch to the SVG tab for the layer's exported markup, with element and attribute names highlighted and hex fills shown as live color swatches.
+- **Keyboard Shortcuts:** Press `1` or `C` for CSS, `2` or `T` for Tailwind, `3` or `S` for SVG, and `Ctrl+C` / `Cmd+C` to copy active code.
 - **Quick Launch in Figma:** Press `Ctrl+Alt+P` (Windows) / `Cmd+Option+P` (Mac) to re-run the plugin from anywhere on canvas, or `Shift+I` to pick from the Plugins drawer.
 
 ### 🎨 Quick Color Copier

@@ -233,7 +233,8 @@ npm test && npm run typecheck && npm run build
 | `tests/tailwind-scale.test.ts` | Scale converters — spaced Figma weight names, specific-over-broad weight precedence, exact-scale vs arbitrary-value fallback for dimensions/radii/font sizes. |
 | `tests/border.test.ts` | Border → Tailwind: uniform, single-side, arbitrary widths, styles. |
 | `tests/color-utils.test.ts` | RGB→HEX/RGBA/HSL, fills/strokes extraction, gradient stops. |
-| `tests/code-highlighter.test.ts` | Renders the real `CodeHighlighter` via `renderToStaticMarkup` — line numbering, property/value tokenization, hex swatches, comment lines, Tailwind token families. |
+| `tests/code-viewer.test.ts` | Renders the real `CodeViewer` via `renderToStaticMarkup` — CSS/Tailwind/SVG tabs exist, CSS stays the default, the `3`/`S` SVG shortcut hint, and CSS border merging. |
+| `tests/code-highlighter.test.ts` | Renders the real `CodeHighlighter` via `renderToStaticMarkup` — line numbering, property/value tokenization, hex swatches, comment lines, Tailwind token families, SVG element/attribute/value tokenization. |
 | `tests/manifest.test.ts` | Manifest schema — required fields, `relaunchButtons[].name`/`command` are strings, `main`/`ui` point at `dist/`. |
 
 ### Known gaps

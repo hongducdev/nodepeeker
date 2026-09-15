@@ -42,12 +42,12 @@ A lightweight, non-intrusive Figma plugin running as a floating compact sidebar 
  ├── Extracts raw properties: fills, strokes, padding, bounds, layout
  ├── Fetches CSS: await node.getCSSAsync()
  ├── Handles export: await node.exportAsync({ format })
- └── Emits message: figma.ui.postMessage({ type: 'SELECTION_DATA', data })
+ └── Emits message: figma.ui.postMessage({ type: 'SELECTION_CHANGE', payload })
          │
          │ postMessage bridge
          ▼
 [ UI Iframe: App.tsx (React 18 + Tailwind CSS + Lucide) ]
- ├── State Management: activeNode, activeTab (CSS / Tailwind), colorFormats
+ ├── State Management: selection (SelectionState), isExporting; code-tab state is owned by CodeViewer
  ├── Components:
  │    ├── Header (Node name, type badge)
  │    ├── BoxModel (Interactive visual geometry diagram)

@@ -2,12 +2,25 @@ import React from 'react';
 
 interface CodeHighlighterProps {
   code: string;
-  language: 'css' | 'tailwind';
+  language: 'css' | 'tailwind' | 'svg';
 }
+
+const EMPTY_PLACEHOLDER: Record<CodeHighlighterProps['language'], string> = {
+  css: '/* No styles extracted */',
+  tailwind: '/* No Tailwind classes generated */',
+  svg: '<!-- No SVG available for this layer -->',
+};
+
+const Swatch: React.FC<{ hex: string; size: number }> = ({ hex, size }) => (
+  <span
+    className="inline-block rounded-full border border-surface2 shrink-0 shadow-xs"
+    style={{ width: size, height: size, backgroundColor: hex }}
+  />
+);
 
 export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language }) => {
   if (!code) {
-    return <span className="text-overlay1 italic">/* No styles extracted */</span>;
+    return <span className="text-overlay1 italic">{EMPTY_PLACEHOLDER[language]}</span>;
   }
 
   if (language === 'css') {
@@ -69,6 +82,25 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
     );
   }
 
+  if (language === 'svg') {
+    const lines = code.split('\n');
+    return (
+      <div className="font-mono text-xs select-all">
+        {lines.map((line, idx) => (
+          <div
+            key={idx}
+            className="flex leading-relaxed hover:bg-surface0/40 px-1 rounded transition-colors"
+          >
+            <span className="select-none text-overlay1 w-5 text-right pr-2 shrink-0 text-[10px]">
+              {idx + 1}
+            </span>
+            <span className="flex-1 whitespace-pre-wrap break-all">{tokenizeSvg(line)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   // Tailwind language
   const classes = code.split(/\s+/).filter(Boolean);
   return (
@@ -82,12 +114,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
             key={idx}
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface0/60 border border-surface1/60 ${colorClass}`}
           >
-            {hexMatch && (
-              <span
-                className="inline-block w-2 h-2 rounded-full border border-surface2 shrink-0 shadow-xs"
-                style={{ backgroundColor: `#${hexMatch[1]}` }}
-              />
-            )}
+            {hexMatch && <Swatch hex={`#${hexMatch[1]}`} size={8} />}
             <span>{cls}</span>
           </span>
         );
@@ -114,10 +141,7 @@ function tokenizeCssValue(val: string): React.ReactNode[] {
     if (hex) {
       nodes.push(
         <span key={key} className="inline-flex items-center gap-1 text-peach font-semibold">
-          <span
-            className="inline-block w-2.5 h-2.5 rounded-full border border-surface2 shrink-0 shadow-xs"
-            style={{ backgroundColor: hex }}
-          />
+          <Swatch hex={hex} size={10} />
           {hex}
         </span>
       );
@@ -179,4 +203,90 @@ function getTailwindClassStyle(cls: string): string {
     return 'text-lavender';
   }
   return 'text-text';
+}
+
+// Alternation order matters: comments before tag punctuation, attribute names
+// (matched with an `=` lookahead) before bare words, quoted values before words.
+const SVG_TOKEN_RE =
+  /(<!--.*?-->)|(<\/|<\?|<)|(\/>|\?>|>)|([A-Za-z_][\w:.-]*)(?=\s*=)|(=)|("[^"]*"|'[^']*')|([A-Za-z_][\w:.-]*)/g;
+
+function tokenizeSvg(line: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  let last = 0;
+  let expectElementName = false;
+
+  for (const match of line.matchAll(SVG_TOKEN_RE)) {
+    const at = match.index ?? 0;
+    const [full, comment, opener, closer, attr, eq, str, word] = match;
+
+    if (at > last) {
+      nodes.push(line.slice(last, at));
+    }
+    const key = `${at}-${full}`;
+
+    if (comment) {
+      nodes.push(
+        <span key={key} className="text-overlay0 italic">
+          {comment}
+        </span>
+      );
+    } else if (opener) {
+      nodes.push(
+        <span key={key} className="text-overlay1">
+          {opener}
+        </span>
+      );
+      expectElementName = true;
+    } else if (closer) {
+      nodes.push(
+        <span key={key} className="text-overlay1">
+          {closer}
+        </span>
+      );
+      expectElementName = false;
+    } else if (attr) {
+      nodes.push(
+        <span key={key} className="text-sky">
+          {attr}
+        </span>
+      );
+    } else if (eq) {
+      nodes.push(
+        <span key={key} className="text-overlay1">
+          {eq}
+        </span>
+      );
+    } else if (str) {
+      nodes.push(<span key={key}>{renderSvgValue(str)}</span>);
+    } else if (word) {
+      const isElementName = expectElementName;
+      expectElementName = false;
+      nodes.push(
+        <span key={key} className={isElementName ? 'text-blue font-medium' : 'text-text'}>
+          {word}
+        </span>
+      );
+    }
+
+    last = at + full.length;
+  }
+
+  if (last < line.length) {
+    nodes.push(line.slice(last));
+  }
+
+  return nodes;
+}
+
+function renderSvgValue(quoted: string): React.ReactNode {
+  const hexMatch = quoted.match(/#([0-9a-fA-F]{3,8})/);
+  if (hexMatch) {
+    return (
+      <span className="inline-flex items-center gap-1 text-peach font-medium">
+        <Swatch hex={`#${hexMatch[1]}`} size={10} />
+        {quoted}
+      </span>
+    );
+  }
+  return <span className="text-green">{quoted}</span>;
 }

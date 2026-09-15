@@ -18,7 +18,7 @@ Develop the backend logic in `src/code/code.ts` running inside Figma's plugin sa
   - Listen to `selectionchange` and transmit structured `NodeInspectionData` to UI.
   - Safely extract native CSS using `node.getCSSAsync()`.
   - Traverse fills/strokes to extract unique color tokens (HEX, RGB, HSL) from the selected node and its direct children.
-  - Listen to messages from UI (`figma.ui.onmessage`) for on-demand asset export (`EXPORT_SVG`, `EXPORT_PNG`).
+  - Listen to messages from UI (`figma.ui.onmessage`) for on-demand asset export (`REQUEST_EXPORT` with `format: 'SVG' | 'PNG'` and `action: 'copy' | 'download'`).
 - **Non-functional:**
   - Safe error handling: never crash or throw uncaught errors on exotic node types (e.g. SLICE, BOOLEAN_OPERATION, empty groups).
   - Fast execution: throttle/debounce selection updates if user drags-selects multiple nodes.
@@ -34,7 +34,7 @@ Figma Selection Change
  ├── Corner radius: uniform cornerRadius or individual [tl, tr, br, bl]
  ├── Colors: extractColors(node) -> Set of { hex, rgb, hsl, opacity, name }
  ├── CSS: await node.getCSSAsync() (with try/catch fallback)
- └── figma.ui.postMessage({ type: 'INSPECT_RESULT', payload })
+ └── figma.ui.postMessage({ type: 'SELECTION_CHANGE', payload })
 ```
 
 ## Related Code Files
@@ -59,7 +59,7 @@ Figma Selection Change
    - Handle `'REQUEST_EXPORT'`:
      - If format is SVG: call `await node.exportAsync({ format: 'SVG' })`, convert bytes to UTF-8 string, post back to UI to copy or download.
      - If format is PNG: call `await node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 2 } })`, send binary payload to UI for browser download.
-5. Handle edge cases: when 0 nodes or multiple nodes are selected, emit appropriate state messages (`NO_SELECTION`, `MULTI_SELECTION`).
+5. Handle edge cases: when 0 nodes or multiple nodes are selected, emit a `SELECTION_CHANGE` message with `payload: { selected: false, count }`.
 
 ## Success Criteria
 - [x] Selecting any Figma layer updates UI with correct node name, type, and dimensions.
