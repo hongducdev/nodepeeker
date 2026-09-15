@@ -1,3 +1,5 @@
+import type { DistanceMeasurement } from '../utils/distance';
+
 export interface ColorToken {
   hex: string;
   rgba: string;
@@ -97,9 +99,13 @@ export interface VideoExportOptions {
   scale: VideoScale;
 }
 
+/** A two-node selection is a different question from a one-node selection -- it is about the
+ *  relationship between layers, not about one layer -- so it gets its own case rather than an
+ *  optional field on the single-node payload. */
 export type SelectionState =
-  | { selected: true; data: NodeInspectionData }
-  | { selected: false; count: number };
+  | { kind: 'single'; data: NodeInspectionData }
+  | { kind: 'pair'; measurement: DistanceMeasurement }
+  | { kind: 'none'; count: number };
 
 /** Document-level metadata. Constant for the session, so it is sent once rather than
  *  riding along on every selection change. `fileKey` is absent unless the manifest sets

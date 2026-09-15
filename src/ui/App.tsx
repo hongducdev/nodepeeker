@@ -15,6 +15,7 @@ import { CodeViewer } from './components/CodeViewer';
 import { QuickExport } from './components/QuickExport';
 import { VideoExport } from './components/VideoExport';
 import { EmptyState } from './components/EmptyState';
+import { DistancePanel } from './components/DistancePanel';
 import { Toast } from './components/Toast';
 import { useClipboard } from './hooks/useClipboard';
 import { useFigmaTheme } from './hooks/useFigmaTheme';
@@ -45,7 +46,7 @@ const downloadBytes = (bytes: Uint8Array, type: string, filename: string) => {
 
 export const App: React.FC = () => {
   useFigmaTheme();
-  const [selection, setSelection] = useState<SelectionState>({ selected: false, count: 0 });
+  const [selection, setSelection] = useState<SelectionState>({ kind: 'none', count: 0 });
   const [fileContext, setFileContext] = useState<FileContext>({ fileName: '' });
   const [isExporting, setIsExporting] = useState(false);
   // Kept apart from isExporting: a video encode runs for seconds, and a selection change
@@ -61,7 +62,7 @@ export const App: React.FC = () => {
   const currentNodeIdRef = useRef<string | null>(null);
   const svgRequestedForRef = useRef<string | null>(null);
 
-  const selectedNodeId = selection.selected ? selection.data.id : null;
+  const selectedNodeId = selection.kind === 'single' ? selection.data.id : null;
   const svgContent = svgCache && svgCache.nodeId === selectedNodeId ? svgCache.content : undefined;
 
   const handleExport = useCallback((msg: UIToPluginMessage) => {
@@ -103,7 +104,7 @@ export const App: React.FC = () => {
 
       if (msg.type === 'SELECTION_CHANGE') {
         setSelection(msg.payload);
-        const nextNodeId = msg.payload.selected ? msg.payload.data.id : null;
+        const nextNodeId = msg.payload.kind === 'single' ? msg.payload.data.id : null;
         // Leaving a node invalidates its request marker, so returning to it refetches
         // (and a fetch that failed once gets a retry on the next visit).
         if (nextNodeId !== currentNodeIdRef.current) {
@@ -169,8 +170,10 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-full bg-base text-text select-none overflow-hidden font-sans">
-      {!selection.selected ? (
+      {selection.kind === 'none' ? (
         <EmptyState count={selection.count} />
+      ) : selection.kind === 'pair' ? (
+        <DistancePanel measurement={selection.measurement} onCopy={copy} />
       ) : (
         <>
           <Header data={selection.data} />

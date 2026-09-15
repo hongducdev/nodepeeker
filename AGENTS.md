@@ -30,9 +30,9 @@ The plugin is **not a single program**. Figma runs two isolated JavaScript realm
 ```
 selectionchange ─► handleSelectionChange()          src/code/code.ts
                      ├─ seq guard (++selectionSequence)
-                     ├─ 0 selected  ─► SELECTION_CHANGE {selected:false,count:0}
-                     ├─ >1 selected ─► SELECTION_CHANGE {selected:false,count:n}
-                     └─ await extractNodeData(node)  src/code/extractors.ts
+                     ├─ 0 or 3+      ─► SELECTION_CHANGE {kind:'none',count:n}
+                     ├─ exactly 2    ─► measureDistance(a,b) → {kind:'pair',measurement}
+                     └─ exactly 1    ─► await extractNodeData(node)  src/code/extractors.ts
                           ├─ getCSSAsync()          (try/catch, fallback {width,height})
                           ├─ layout / padding / radius probes
                           ├─ typography (TEXT nodes)
@@ -41,15 +41,18 @@ selectionchange ─► handleSelectionChange()          src/code/code.ts
                           ├─ sizing (Hug axes) / absolute position
                           └─ border from strokes + dashPattern
                           ✗ no exportAsync — SVG is not extracted here
-                   ─► postMessage SELECTION_CHANGE {selected:true,data}
+                   ─► postMessage SELECTION_CHANGE {kind:'single',data}
                           │
                           ▼
                    setSelection(payload)             src/ui/App.tsx
-                          │
-        ┌─────────────────┼──────────────────┬───────────────┐
-     Header           BoxModel          ColorPalette     CodeViewer
-   (+ BorderStyle)                                     transpileToTailwind(data)
-                                                        src/utils/tailwind-transpiler.ts
+                          ├─ kind:'none' ─► EmptyState
+                          ├─ kind:'pair' ─► DistancePanel
+                          └─ kind:'single'
+                                  │
+        ┌─────────────────────────┴─────┬───────────────┐
+     Header           BoxModel     ColorPalette     CodeViewer
+   (+ BorderStyle)                                 transpileToTailwind(data)
+                                                    src/utils/tailwind-transpiler.ts
 ```
 
 **Export flow (reverse direction):** `QuickExport` → `parent.postMessage({pluginMessage:{type:'REQUEST_EXPORT',...}})` → `code.ts` **re-reads `figma.currentPage.selection`** (it does not cache the node) → `exportAsync` → `EXPORT_RESULT`.
@@ -77,9 +80,9 @@ The `video` field is also the **gate on the whole Animation Export section: its 
 |---|---|
 | `src/code/` | **Sandbox thread.** Scene-graph reading, color math, message routing. Must stay DOM-free. |
 | `src/ui/` | **UI thread.** React root (`App.tsx`, `main.tsx`), `components/`, `hooks/`, Tailwind entry `styles.css`, Vite entry `index.html`. |
-| `src/utils/` | **Shared pure logic**, runs in the iframe. Tailwind scale tables and the transpiler. No Figma and no DOM dependency. |
+| `src/utils/` | **Shared pure logic**, runs in the iframe. Tailwind scale tables, the transpiler, and the pair-distance geometry (`distance.ts` — gaps, overlap, alignment, direction, `unionBounds`). No Figma and no DOM dependency. |
 | `src/types/` | `messages.ts` — the wire contract imported by both threads. |
-| `tests/` | Vitest unit tests — `src/code/`, `src/utils/`, and statically rendered UI components. |
+| `tests/` | Vitest unit tests — `src/code/`, `src/utils/` (including the pure `distance.test.ts` geometry), and statically rendered UI components (`DistancePanel`, `CodeViewer`, …). |
 | `dist/` | Build output. **Gitignored** — never edit by hand. |
 | `docs/` | `installation-guide.md` (user-facing), `brainstorm-summary-*.md` (decision record), `journals/` (per-session engineering log). |
 | `plans/` | `plan.md` + `phase-0N-*.md` execution plans with frontmatter and checklists. |
@@ -151,7 +154,7 @@ catch { success = false; }
 - `figma.ui.onmessage` is an `async` assignment with an early `return` per message type.
 
 ### State management
-- **No state library, no context.** `App.tsx` owns `SelectionState` and `isExporting`.
+- **No state library, no context.** `App.tsx` owns `SelectionState` — the `kind: 'single' | 'pair' | 'none'` union, not a `{selected, …}` shape — and `isExporting`.
 - Transient UI state is local: `tab` in `CodeViewer`, `format` in `ColorPalette`, `showShortcuts` in `Header`.
 - The only cross-cutting state is `useClipboard()`, threaded down as `onCopy` / `copiedText` props. All other children are pure.
 - Wrap callbacks used in effect dependency arrays in `useCallback`.
@@ -168,6 +171,7 @@ catch { success = false; }
 - `styles.css` sets `user-select: none` globally. Any copyable region must opt back in with `select-all` (see `CodeHighlighter`).
 
 ### Figma API traps
+- **A plugin cannot draw on the canvas — there is no overlay API.** Figma gives a plugin no way to paint an ephemeral ruler, guide, or measurement label over the scene, so a Dev Mode-style ruler **cannot be reproduced on the canvas**, only in the panel. The only way to put a mark on the canvas is to create real nodes, which mutates the user's document and its undo history; NodePeeker is strictly read-only, so any measure feature must render in the iframe. The two-node measurement follows that rule: `DistancePanel` draws both boxes as percentages inside a panel-local `overflow-hidden` frame.
 - **`type` is required on every `postMessage`.** The UI switches on `msg.type`; a message without one is silently dropped.
 - Opt-in booleans are `undefined` by default: test `paint.visible === false`, never `!paint.visible`.
 - `node.strokes.length > 0` does not imply a visible border — find the first stroke with `visible !== false`.
@@ -180,6 +184,7 @@ catch { success = false; }
 - **Video export (`MP4` / `GIF` / `WEBM`) accepts one node shape and nothing else: a frame placed directly on a page, carrying Motion animation.** The entire frame is encoded across the animation's duration — a nested animated frame, or an individual layer that merely has keyframes, **rejects**. A frame inside a **Section** is the top-most frame yet is *not* placed directly on a page, so `resolveVideoFrame` returns `undefined` for it too. Resolve the encodable frame in `src/code/video-frame.ts` (`resolveVideoFrame`), never by hand at the call site.
 - **`exportAsync` video encodes Motion animation only; interactive Smart Animate prototype flows cannot be encoded by it at all.** The encoder plays out a Motion timeline (or an applied animation style / keyframe set); a prototype interaction is a connection between two frames, `reactions` on the source, not a timeline on one — producing video from it would mean simulating the prototype player, which `exportAsync` does not do. That is why the animation gate reads exactly `timelines.length > 0`, non-empty `animationStyles`, or non-empty `animations` and **deliberately excludes `reactions`**: counting a prototype-only flow as animation would re-create the dead action the gate exists to prevent — section shown, encode fails with a generic error because nothing on the frame is animatable. Detection is `resolveVideoTarget()` in `src/code/video-frame.ts`; the UI gates on the extracted `video` field, not on `resolveVideoFrame` succeeding.
 - **`getTopLevelFrame()` promises less than it looks like.** Its contract is "the top-most frame **that contains** this node … `undefined` if the node is not inside a frame" — self-return for a node that already *is* a top-level frame is **not** stated, and such a frame is by definition not *inside* a frame. The most common workflow (select a frame, export it) therefore cannot lean on it; `resolveVideoFrame` handles that case explicitly and only consults `getTopLevelFrame()` for nodes nested in something. That call **also throws outside Figma Design** (FigJam, Slides), so it is wrapped in a `try`.
+- **`absoluteBoundingBox` excludes stroke and effect overflow, and it is `Rect | null`.** The box Figma reports is the geometry box: it does **not** grow for a thick `strokeWeight`, an outer shadow, or a blur, so a designer measuring to the *rendered* edge expects `absoluteRenderBounds` instead — the two differ by exactly that overflow, and this plugin measures the bounding box. It is also nullable: `absoluteBoundingBox` is typed `Rect | null` and is absent for some node kinds (and for nodes Figma has not laid out yet), so every read must be guarded. `code.ts` treats a missing box on either side of a two-layer selection as **no measurement** (`{kind:'none', count: 2}`) rather than posting a half-built payload, and `measureDistance` takes plain `DistanceBounds` so the pure geometry never sees a `null`.
 - **`figma.ui.postMessage` carries `Uint8Array` through structured clone.** Binary payloads (PNG, `VIDEO_EXPORT_RESULT`) are posted as `Uint8Array` and rebuilt into a `Blob` on the UI side — `new Blob([bytes], {type})`. The UI still checks `bytes instanceof Uint8Array` before downloading and `alert`s otherwise, because a regression to `Array.from(bytes)` would ship a `number[]` that produces a plausible-looking but corrupt file instead of failing loudly.
 
 ---
@@ -255,12 +260,15 @@ npm test && npm run typecheck && npm run build
 | `tests/node-link-component.test.ts` | Renders the real `NodeLink` via `renderToStaticMarkup` (no jsdom). The deep link when a file key is present, the **URL-form** fallback when it is not, and that the fallback is labelled "node ID in URL form" with the API form named in the note — the two forms are genuinely different strings. |
 | `tests/manifest.test.ts` | Manifest schema — required fields, `relaunchButtons[].name`/`command` are strings, `main`/`ui` point at `dist/`, and `enablePrivatePluginApi` is pinned to `true` (the sole prerequisite for a readable `figma.fileKey`; the test asserts the length of `relaunchButtons` so the schema check cannot go vacuous). |
 | `tests/output-fidelity.test.ts` | Extraction vs. transpiler fidelity. Extraction: no vector export during `extractNodeData`; `opacity` reported independently of shadows and omitted at `1`; real shadow geometry/colour with inner-vs-drop and hidden/non-shadow effects skipped; Hug sizing mapped onto the physical axis; `ABSOLUTE` positioning flagged; and the video target — `video` carries the encoded frame's id/name plus the longest Motion timeline duration for an animated page-level frame, is defined for a frame animated only by styles or keyframes, and is **absent** for a static frame or one with no enclosing page-level frame (the gate the animation section rides on). Transpiler: `leading-*`/`tracking-*`, `w-fit`/`h-fit`/`self-stretch`, `absolute` + `left-[…]`/`top-[…]` offsets, real `shadow-[…]` and `opacity-*`, and **no** shadow class on a shadowless node. |
-| `tests/sandbox-protocol.test.ts` | The message router in `src/code/code.ts`. Stubs the `figma` global and `__html__`, then imports `code.ts` **dynamically** because the module reads those globals while its body evaluates (a static import would be hoisted ahead of the stubs and throw). `REQUEST_EXPORT`: SVG `view`/`copy`/`download` action passthrough, the echoed `nodeId`, PNG `2x` default and explicit scale, file-name sanitisation, `EXPORT_ERROR` on an empty selection, and `EXPORT_ERROR` when the export itself throws. `REQUEST_VIDEO_EXPORT`: the resolved top-level frame (not the selection) is encoded, MP4 gets settings + `quality` while GIF gets `loopCount`, an out-of-set fps is clamped rather than forwarded, bytes ship as a `Uint8Array`, a selection with no enclosing frame is refused, and an encode failure names the **encoded frame**. |
+| `tests/sandbox-protocol.test.ts` | The message router in `src/code/code.ts`. Stubs the `figma` global and `__html__`, then imports `code.ts` **dynamically** because the module reads those globals while its body evaluates (a static import would be hoisted ahead of the stubs and throw). `REQUEST_EXPORT`: SVG `view`/`copy`/`download` action passthrough, the echoed `nodeId`, PNG `2x` default and explicit scale, file-name sanitisation, `EXPORT_ERROR` on an empty selection, and `EXPORT_ERROR` when the export itself throws. `REQUEST_VIDEO_EXPORT`: the resolved top-level frame (not the selection) is encoded, MP4 gets settings + `quality` while GIF gets `loopCount`, an out-of-set fps is clamped rather than forwarded, bytes ship as a `Uint8Array`, a selection with no enclosing frame is refused, and an encode failure names the **encoded frame**. **Two-node selection routing** (`selectionchange`): a selection of exactly two layers with an `absoluteBoundingBox` reports `kind: 'pair'` with the measured `gapX`/`gapY`, `distance`, `direction` and `alignments`; a pair where one layer has **no** bounds posts `{kind:'none', count: 2}` instead of a half-built measurement; and zero or three-or-more layers stay `{kind:'none', count: n}`. |
+| `tests/distance.test.ts` | `src/utils/distance.ts` — the pure geometry over `absoluteBoundingBox`, no Figma and no DOM. Gaps on one axis and both (`gapX`, `gapY`, and the diagonal `distance`); **touching is a zero gap and not an overlap**, while intersecting boxes report `overlap` extents and a box sharing a full edge still reports no overlap; alignment within the documented half-pixel tolerance, including the cases where shared edges must **not** imply a shared centre; `direction` taken from the per-axis side so a zero gap is not misread as `overlapping`; two-decimal rounding, never a negative gap, gap symmetry with the direction flipping, identical and zero-size boxes, and `unionBounds` spanning both boxes commutatively so the diagram can scale to fit. |
+| `tests/distance-panel.test.ts` | Renders the real `DistancePanel` via `renderToStaticMarkup` (no jsdom). Names both layers; asserts **each gap against its own row** (horizontal and vertical are not interchangeable); the direction sentence; the overlap row and its absence when the boxes do not intersect; the aligned edges listed by name; that the copy label offers the **measured gap** rather than a raw axis value; and the diagram's per-box proportional position and size — including that a partly floored tiny box is clamped so it stays inside the `overflow-hidden` frame instead of being clipped away. |
 | `tests/video-options.test.ts` | `src/utils/video-options.ts` — the pure option tables. The per-format fps sets stay distinct (Figma rejects an out-of-set rate), the documented defaults (`MP4` 30 / `GIF` 15) seed the panel, quality presets exist only for MP4, the scale list matches the API, and each format is paired with a matching MIME type + extension (a mismatch ships a corrupt file with a plausible name). `clampFps`: pass-through, nearest-allowed snapping (60 → 30 for GIF), "always returns something the format accepts" for any input, and the default fallback for non-finite input. |
 | `tests/video-frame.test.ts` | `src/code/video-frame.ts` — what Figma will encode, and whether the frame has anything to encode. `resolveVideoFrame`: a frame placed directly on a page is accepted **without** relying on `getTopLevelFrame()` self-return (the mocked call returns `undefined` for it, mirroring the docs); a nested layer walks up to its enclosing top-level frame; a frame whose parent is a **Section** is rejected (top-most, but not placed directly on a page); a node with no enclosing frame and an empty selection are rejected; and a `getTopLevelFrame` that throws (FigJam/Slides) returns `undefined` instead of escaping. `resolveVideoTarget` (the motion gate the animation section rides on): a Motion timeline, applied animation styles, and keyframes each count as animation on their own; the reported duration is the **longest** of several timelines; a non-finite duration is ignored rather than reported; and a **static frame is rejected**, which is the behaviour the gate exists for. |
 | `tests/video-export-component.test.ts` | Renders the real `VideoExport` via `renderToStaticMarkup` (no jsdom; this covers the initial MP4 render plus the disabled state without testing-library, which is not installed). Names the frame that will be encoded — not the selection — and says the whole frame is encoded, opens on MP4 with a specific quality control and **no** loop control (the interactive GIF switch itself is not exercised), offers only the fps rates MP4 accepts (never `8`), labels the action `Download MP4` for the current format, and disables it with an `Encoding…` label while in flight. |
 
 ### Known gaps
-- **No React interaction tests.** Components are covered only by static markup rendering (`code-highlighter.test.ts`, `code-viewer.test.ts`, `node-link-component.test.ts`, `video-export-component.test.ts`). Event handlers, effect lifecycles, and the `App` message listener are untested — verify those by reloading in Figma. The `VideoExport` format switch is the concrete gap: only the MP4 render is asserted, so the GIF branch (loop control) is proven by hand in the browser, not by a test.
-- **Sandbox coverage is partial.** `sandbox-protocol.test.ts` covers the `REQUEST_EXPORT` and `REQUEST_VIDEO_EXPORT` routers, but the `selectionchange` path and the sequence guard are still untested.
+- **No React interaction tests.** Components are covered only by static markup rendering (`code-highlighter.test.ts`, `code-viewer.test.ts`, `distance-panel.test.ts`, `node-link-component.test.ts`, `video-export-component.test.ts`). Event handlers, effect lifecycles, and the `App` message listener are untested — verify those by reloading in Figma. The `VideoExport` format switch is the concrete gap: only the MP4 render is asserted, so the GIF branch (loop control) is proven by hand in the browser, not by a test.
+- **Sandbox coverage is partial.** `sandbox-protocol.test.ts` covers the `REQUEST_EXPORT` and `REQUEST_VIDEO_EXPORT` routers plus the **two-node** `selectionchange` routing, but the sequence guard and the single-node extraction path are still untested.
+- **`DistancePanel` is only covered through its measurement data.** `distance-panel.test.ts` renders it with prepared measurements, so the `kind: 'pair'` branch of `App.tsx` — the routing that decides a pair renders this panel instead of the inspector — is proven by `sandbox-protocol.test.ts` on the sandbox side and by hand in Figma on the UI side.
 - There is **no linter and no formatter configured**. There is no `lint` script. Match surrounding style by hand: 2-space indent, single quotes, semicolons, trailing commas, ~100-column soft wrap.

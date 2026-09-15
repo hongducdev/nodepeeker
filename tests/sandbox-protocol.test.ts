@@ -222,6 +222,60 @@ describe('sandbox video export', () => {
   });
 });
 
+describe('sandbox selection routing', () => {
+  const withBounds = (name: string, x: number, y: number, width: number, height: number) => ({
+    ...node(),
+    name,
+    absoluteBoundingBox: { x, y, width, height },
+  });
+
+  const payloadOf = () =>
+    posted.find((m) => m.type === 'SELECTION_CHANGE')?.payload as Record<string, unknown>;
+
+  it('measures the gap when exactly two layers are selected', async () => {
+    selection.length = 0;
+    selection.push(withBounds('Button', 0, 0, 100, 50), withBounds('Card', 124, 0, 140, 90));
+
+    await send({ type: 'INIT_REQUEST' });
+
+    const payload = payloadOf();
+    expect(payload.kind).toBe('pair');
+    expect(payload.measurement).toMatchObject({
+      gapX: 24,
+      gapY: 0,
+      distance: 24,
+      direction: 'right',
+      alignments: ['top'],
+    });
+  });
+
+  it('reports no measurement when a layer has no absolute bounds', async () => {
+    // Figma returns null bounds for some node kinds; a measurement needs both.
+    selection.length = 0;
+    selection.push(withBounds('Button', 0, 0, 100, 50), {
+      ...node(),
+      name: 'NoBounds',
+      absoluteBoundingBox: null,
+    });
+
+    await send({ type: 'INIT_REQUEST' });
+
+    expect(payloadOf()).toEqual({ kind: 'none', count: 2 });
+  });
+
+  it('falls back to none for zero, one-without-bounds and three or more', async () => {
+    selection.length = 0;
+    await send({ type: 'INIT_REQUEST' });
+    expect(payloadOf()).toEqual({ kind: 'none', count: 0 });
+
+    selection.length = 0;
+    selection.push(withBounds('a', 0, 0, 10, 10), withBounds('b', 20, 0, 10, 10), withBounds('c', 40, 0, 10, 10));
+    posted.length = 0;
+    await send({ type: 'INIT_REQUEST' });
+    expect(payloadOf()).toEqual({ kind: 'none', count: 3 });
+  });
+});
+
 describe('sandbox file context', () => {
   it('posts the file key and name on init so the UI can build a deep link', async () => {
     figmaMock.fileKey = 'aXrGAc4tTcMFWklkcboC1l';

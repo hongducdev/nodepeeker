@@ -29,6 +29,12 @@
 - **Interactive Diagram:** Clear visual representation of the selected element's box model including outer dimensions ($W \times H$), 4-sided padding (Top, Right, Bottom, Left), auto-layout gaps, and corner radii.
 - **Click-to-Copy:** Click on any dimension or padding metric to copy its exact pixel value directly.
 
+### 📏 Measure Distance
+- **Select Exactly Two Layers:** The panel switches from the inspector to a distance readout — the **horizontal and vertical gaps** between the layers, the **straight-line edge-to-edge distance**, and which way the second layer sits relative to the first (`Button is to the right of Card`). Any other selection (0, 1, or 3+) keeps the normal inspector.
+- **Alignment and Overlap:** Shared edges — left, right, top, bottom, and shared centre lines — are listed when they line up within a half-pixel, so float drift does not hide a real alignment. When the layers intersect, the gaps read `0` and the **overlap extent** (`width × height`) is shown instead; touching edges are a `0` gap, **not** an overlap.
+- **Copy the Gap:** Click the measurement chip to copy it — `24 px`, or `24 × 12 px` when the layers are separated on both axes.
+- **Panel-Only by Design:** Figma gives plugins no way to draw a ruler on the canvas, so the measurement (a scaled mini-diagram of both boxes plus the numbers) renders in the panel. The plugin stays read-only — it never creates measure nodes, so your file and undo history are untouched.
+
 ### ⚡ 1-Click Asset Export
 - **Copy SVG:** Copies raw, optimized SVG markup straight into your clipboard for direct JSX/HTML pasting.
 - **Save SVG:** One-click download of SVG vector assets without opening Figma's nested export drawer.

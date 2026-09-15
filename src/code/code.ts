@@ -3,6 +3,7 @@ import { extractNodeData } from './extractors';
 import { uint8ArrayToString } from './color-utils';
 import { clampFps } from '../utils/video-options';
 import { resolveVideoFrame } from './video-frame';
+import { measureDistance, type DistanceMeasurement } from '../utils/distance';
 
 figma.showUI(__html__, {
   width: 340,
@@ -30,13 +31,36 @@ function readFileContext() {
 
 let selectionSequence = 0;
 
+/** Gap between two layers, or `undefined` when either has no absolute bounds (Figma returns
+ *  null for some node kinds, and a measurement needs both). */
+function measureSelection(a: SceneNode, b: SceneNode): DistanceMeasurement | undefined {
+  const boundsA = a.absoluteBoundingBox;
+  const boundsB = b.absoluteBoundingBox;
+  if (!boundsA || !boundsB) return undefined;
+
+  return measureDistance(
+    { name: a.name, bounds: boundsA },
+    { name: b.name, bounds: boundsB }
+  );
+}
+
 async function handleSelectionChange() {
   const seq = ++selectionSequence;
   const selection = figma.currentPage.selection;
-  if (selection.length !== 1) {
+  if (selection.length !== 1 && selection.length !== 2) {
     figma.ui.postMessage({
       type: 'SELECTION_CHANGE',
-      payload: { selected: false, count: selection.length },
+      payload: { kind: 'none', count: selection.length },
+    });
+    return;
+  }
+
+  if (selection.length === 2) {
+    const measurement = measureSelection(selection[0], selection[1]);
+    if (seq !== selectionSequence) return;
+    figma.ui.postMessage({
+      type: 'SELECTION_CHANGE',
+      payload: measurement ? { kind: 'pair', measurement } : { kind: 'none', count: 2 },
     });
     return;
   }
@@ -47,14 +71,14 @@ async function handleSelectionChange() {
     if (seq !== selectionSequence) return;
     figma.ui.postMessage({
       type: 'SELECTION_CHANGE',
-      payload: { selected: true, data },
+      payload: { kind: 'single', data },
     });
   } catch {
     if (seq !== selectionSequence) return;
     figma.ui.postMessage({
       type: 'SELECTION_CHANGE',
       payload: {
-        selected: true,
+        kind: 'single',
         data: {
           id: node.id,
           name: node.name,
