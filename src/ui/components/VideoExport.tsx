@@ -11,8 +11,8 @@ import {
 } from '../../utils/video-options';
 
 interface VideoExportProps {
-  /** The frame Figma will actually encode, resolved via `getTopLevelFrame()`. */
-  frame: { id: string; name: string };
+  /** The frame Figma will encode, plus its detected motion duration. */
+  video: { frameId: string; frameName: string; durationSeconds?: number };
   onExport: (options: VideoExportOptions) => void;
   isExporting: boolean;
 }
@@ -22,7 +22,7 @@ const FORMATS: ReadonlyArray<{ id: VideoFormat; label: string; icon: typeof Film
   { id: 'GIF', label: 'GIF', icon: ImageIcon },
 ];
 
-export const VideoExport: React.FC<VideoExportProps> = ({ frame, onExport, isExporting }) => {
+export const VideoExport: React.FC<VideoExportProps> = ({ video, onExport, isExporting }) => {
   const [format, setFormat] = useState<VideoFormat>('MP4');
   const [fps, setFps] = useState(DEFAULT_FPS.MP4);
   const [quality, setQuality] = useState<VideoQuality>('HIGH');
@@ -47,7 +47,12 @@ export const VideoExport: React.FC<VideoExportProps> = ({ frame, onExport, isExp
       </div>
 
       <p className="mb-2 text-[9px] leading-tight text-overlay0">
-        Encodes the whole frame, not the layer: <span className="font-mono text-subtext0">{frame.name}</span>
+        Detected motion in{' '}
+        <span className="font-mono text-subtext0">{video.frameName}</span>
+        {video.durationSeconds !== undefined && (
+          <span className="text-overlay1"> · {video.durationSeconds}s</span>
+        )}
+        <span className="text-overlay1"> — the whole frame is encoded, not the layer</span>
       </p>
 
       <div className="flex items-center gap-1 mb-2">

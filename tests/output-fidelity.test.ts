@@ -132,28 +132,85 @@ describe('extraction: sizing and position', () => {
   });
 });
 
-describe('extraction: video frame', () => {
-  it('reports the enclosing page-level frame that video export would encode', async () => {
+describe('extraction: video target', () => {
+  const animatedFrame = (over: Record<string, unknown> = {}) => {
     const page = { type: 'PAGE' };
     const outer = {
       id: '9:9',
       name: 'Loading / Loop',
       type: 'FRAME',
       parent: page,
+      timelines: [{ id: 't1', duration: 0.6 }],
+      animationStyles: [],
+      animations: {},
+      ...over,
     } as unknown as FrameNode;
+    return outer;
+  };
 
+  it('reports the frame and its motion duration when the frame is animated', async () => {
+    const outer = animatedFrame();
     const data = await extractNodeData(
       asNode({ type: 'VECTOR', parent: outer, getTopLevelFrame: () => outer })
     );
 
-    expect(data.topLevelFrame).toEqual({ id: '9:9', name: 'Loading / Loop' });
+    expect(data.video).toEqual({
+      frameId: '9:9',
+      frameName: 'Loading / Loop',
+      durationSeconds: 0.6,
+    });
   });
 
-  it('omits the frame when the selection cannot be encoded', async () => {
+  it('reports nothing for a static frame, so the UI offers no dead action', async () => {
+    // A frame with no Motion timeline is exactly what exportAsync rejects; gating here is
+    // the point of the detection.
+    const outer = animatedFrame({ timelines: [] });
+    const data = await extractNodeData(
+      asNode({ type: 'VECTOR', parent: outer, getTopLevelFrame: () => outer })
+    );
+
+    expect(data.video).toBeUndefined();
+  });
+
+  it('treats applied animation styles or keyframes as motion even without a timeline', async () => {
+    const withStyles = await extractNodeData(
+      asNode({
+        parent: { type: 'PAGE' },
+        getTopLevelFrame: () => animatedFrame({ timelines: [], animationStyles: [{ id: 'a1' }] }),
+      })
+    );
+    expect(withStyles.video).toBeDefined();
+
+    const withKeyframes = await extractNodeData(
+      asNode({
+        parent: { type: 'PAGE' },
+        getTopLevelFrame: () =>
+          animatedFrame({ timelines: [], animations: { TRANSLATION_X: { tracks: [] } } }),
+      })
+    );
+    expect(withKeyframes.video).toBeDefined();
+  });
+
+  it('reports the longest timeline when a frame has several', async () => {
+    // Descending, so a last-wins implementation cannot pass by accident.
+    const outer = animatedFrame({
+      timelines: [
+        { id: 't1', duration: 1.25 },
+        { id: 't2', duration: 0.4 },
+      ],
+    });
+    const data = await extractNodeData(
+      asNode({ parent: { type: 'PAGE' }, getTopLevelFrame: () => outer })
+    );
+
+    expect(data.video?.durationSeconds).toBe(1.25);
+  });
+
+  it('reports nothing when the selection has no enclosing page-level frame', async () => {
     const data = await extractNodeData(
       asNode({ parent: { type: 'PAGE' }, getTopLevelFrame: () => undefined })
     );
-    expect(data.topLevelFrame).toBeUndefined();
+    expect(data.video).toBeUndefined();
   });
 });
 

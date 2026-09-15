@@ -75,10 +75,12 @@ export interface NodeInspectionData {
   sizing?: { hugHorizontal: boolean; hugVertical: boolean };
   /** Child of an auto-layout frame pinned with `layoutPositioning: 'ABSOLUTE'`. */
   position?: { absolute: boolean };
-  /** The frame video export would encode. Figma rejects video export on anything that is not
-   *  a top-level frame, so this is resolved with `getTopLevelFrame()` and may differ from the
-   *  selected node. Absent when the selection has no enclosing top-level frame. */
-  topLevelFrame?: { id: string; name: string };
+  /** Present only when the selection resolves to a frame Figma can actually encode: a frame
+   *  placed directly on a page that carries Motion/timeline animation. Prototype-only Smart
+   *  Animate flows are not resolvable by `exportAsync`, so `reactions` is deliberately not a
+   *  signal here. Presence gates the animation-export UI, so a static frame offers no dead
+   *  action. */
+  video?: { frameId: string; frameName: string; durationSeconds?: number };
 }
 
 export type VideoFormat = 'MP4' | 'GIF';

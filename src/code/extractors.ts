@@ -1,6 +1,6 @@
 import { BoxModelData, NodeInspectionData, TypographyData, BorderData, ShadowData } from '../types/messages';
 import { extractColorsFromNode, rgbToHex } from './color-utils';
-import { resolveVideoFrame } from './video-frame';
+import { resolveVideoTarget } from './video-frame';
 
 export async function extractNodeData(node: SceneNode): Promise<NodeInspectionData> {
   const width = Math.round(('width' in node ? node.width : 0) * 100) / 100;
@@ -174,11 +174,15 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
       ? { absolute: true }
       : undefined;
 
-  // Figma only encodes video for a top-level frame, so resolve it here and let the UI name
-  // the frame it would actually export -- which is often not the selected node.
-  const resolvedFrame = resolveVideoFrame(node);
-  const topLevelFrame = resolvedFrame
-    ? { id: resolvedFrame.id, name: resolvedFrame.name }
+  // Only frames Figma can actually encode get a video target; the UI gates on its presence,
+  // so a static frame never offers an export that would fail.
+  const videoTarget = resolveVideoTarget(node);
+  const video = videoTarget
+    ? {
+        frameId: videoTarget.frame.id,
+        frameName: videoTarget.frame.name,
+        durationSeconds: videoTarget.durationSeconds,
+      }
     : undefined;
 
   const colors = extractColorsFromNode(node);
@@ -288,6 +292,6 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
     shadows: shadows.length > 0 ? shadows : undefined,
     sizing,
     position,
-    topLevelFrame,
+    video,
   };
 }

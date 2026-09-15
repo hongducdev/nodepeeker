@@ -212,9 +212,9 @@ export const App: React.FC = () => {
               svgContent={svgContent}
               onCopy={copy}
             />
-            {selection.data.topLevelFrame && (
+            {selection.data.video && (
               <VideoExport
-                frame={selection.data.topLevelFrame}
+                video={selection.data.video}
                 onExport={handleVideoExport}
                 isExporting={isVideoExporting}
               />
