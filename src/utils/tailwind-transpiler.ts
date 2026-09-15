@@ -111,9 +111,41 @@ export function transpileToTailwind(data: NodeInspectionData): string {
     }
   }
 
-  const stroke = colors.find((c) => c.source === 'stroke');
-  if (stroke) {
-    visualClasses.push('border', `border-[${stroke.hex}]`);
+  if (data.border) {
+    const { strokeWeight, individualWeights, strokeStyle, color } = data.border;
+
+    if (individualWeights) {
+      const sides = [
+        { side: 't', w: individualWeights.top },
+        { side: 'r', w: individualWeights.right },
+        { side: 'b', w: individualWeights.bottom },
+        { side: 'l', w: individualWeights.left },
+      ];
+      for (const { side, w } of sides) {
+        if (w > 0) {
+          if (w === 1) visualClasses.push(`border-${side}`);
+          else if ([2, 4, 8].includes(w)) visualClasses.push(`border-${side}-${w}`);
+          else visualClasses.push(`border-${side}-[${w}px]`);
+        }
+      }
+    } else if (strokeWeight > 0) {
+      if (strokeWeight === 1) visualClasses.push('border');
+      else if ([2, 4, 8].includes(strokeWeight)) visualClasses.push(`border-${strokeWeight}`);
+      else visualClasses.push(`border-[${strokeWeight}px]`);
+    }
+
+    if (strokeStyle === 'dashed') {
+      visualClasses.push('border-dashed');
+    } else if (strokeStyle === 'dotted') {
+      visualClasses.push('border-dotted');
+    }
+
+    visualClasses.push(`border-[${color}]`);
+  } else {
+    const stroke = colors.find((c) => c.source === 'stroke');
+    if (stroke) {
+      visualClasses.push('border', `border-[${stroke.hex}]`);
+    }
   }
 
   // Corner radius

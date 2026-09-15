@@ -28,6 +28,20 @@ export interface TypographyData {
   letterSpacing?: number | string;
   textAlign?: 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED';
 }
+export interface BorderData {
+  strokeWeight: number;
+  individualWeights?: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+  strokeAlign?: 'INSIDE' | 'OUTSIDE' | 'CENTER';
+  strokeStyle: 'solid' | 'dashed' | 'dotted';
+  dashPattern?: number[];
+  color: string;
+}
+
 
 export interface NodeInspectionData {
   id: string;
@@ -48,6 +62,7 @@ export interface NodeInspectionData {
     opacity?: number;
   };
   svg?: string;
+  border?: BorderData;
 }
 
 export type SelectionState =

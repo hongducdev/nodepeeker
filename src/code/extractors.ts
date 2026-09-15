@@ -1,5 +1,5 @@
-import { BoxModelData, NodeInspectionData, TypographyData } from '../types/messages';
-import { extractColorsFromNode, uint8ArrayToString } from './color-utils';
+import { BoxModelData, NodeInspectionData, TypographyData, BorderData } from '../types/messages';
+import { extractColorsFromNode, uint8ArrayToString, rgbToHex } from './color-utils';
 
 export async function extractNodeData(node: SceneNode): Promise<NodeInspectionData> {
   const width = Math.round(('width' in node ? node.width : 0) * 100) / 100;
@@ -155,6 +155,84 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
       // ignore export failure
     }
   }
+  let border: BorderData | undefined;
+  if ('strokes' in node && Array.isArray(node.strokes)) {
+    const visibleStroke = node.strokes.find((s) => s.visible !== false);
+    if (visibleStroke && visibleStroke.type === 'SOLID') {
+      const strokeColor = rgbToHex(
+        visibleStroke.color.r,
+        visibleStroke.color.g,
+        visibleStroke.color.b
+      );
+
+      let uniformWeight = 0;
+      if ('strokeWeight' in node && typeof node.strokeWeight === 'number') {
+        uniformWeight = Math.round(node.strokeWeight * 100) / 100;
+      }
+
+      let individualWeights: BorderData['individualWeights'];
+      if (
+        'strokeTopWeight' in node &&
+        typeof node.strokeTopWeight === 'number' &&
+        'strokeRightWeight' in node &&
+        typeof node.strokeRightWeight === 'number' &&
+        'strokeBottomWeight' in node &&
+        typeof node.strokeBottomWeight === 'number' &&
+        'strokeLeftWeight' in node &&
+        typeof node.strokeLeftWeight === 'number'
+      ) {
+        const top = Math.round(node.strokeTopWeight * 100) / 100;
+        const right = Math.round(node.strokeRightWeight * 100) / 100;
+        const bottom = Math.round(node.strokeBottomWeight * 100) / 100;
+        const left = Math.round(node.strokeLeftWeight * 100) / 100;
+
+        if (top !== right || right !== bottom || bottom !== left) {
+          individualWeights = { top, right, bottom, left };
+        } else if (uniformWeight === 0 && top > 0) {
+          uniformWeight = top;
+        }
+      }
+
+      let strokeStyle: 'solid' | 'dashed' | 'dotted' = 'solid';
+      let dashPattern: number[] | undefined;
+      if ('dashPattern' in node && Array.isArray(node.dashPattern) && node.dashPattern.length > 0) {
+        dashPattern = Array.from(node.dashPattern);
+        if (dashPattern.length === 2 && dashPattern[0] <= 2 && dashPattern[1] > dashPattern[0]) {
+          strokeStyle = 'dotted';
+        } else {
+          strokeStyle = 'dashed';
+        }
+      }
+
+      let strokeAlign: 'INSIDE' | 'OUTSIDE' | 'CENTER' = 'INSIDE';
+      if ('strokeAlign' in node && typeof node.strokeAlign === 'string') {
+        strokeAlign = node.strokeAlign as 'INSIDE' | 'OUTSIDE' | 'CENTER';
+      }
+
+      const hasWeight = uniformWeight > 0 || (individualWeights && (individualWeights.top > 0 || individualWeights.right > 0 || individualWeights.bottom > 0 || individualWeights.left > 0));
+      if (hasWeight) {
+        border = {
+          strokeWeight: uniformWeight,
+          individualWeights,
+          strokeAlign,
+          strokeStyle,
+          dashPattern,
+          color: strokeColor,
+        };
+
+        // Ensure CSS includes border declarations
+        if (individualWeights) {
+          if (individualWeights.top > 0) css['border-top'] = `${individualWeights.top}px ${strokeStyle} ${strokeColor}`;
+          if (individualWeights.right > 0) css['border-right'] = `${individualWeights.right}px ${strokeStyle} ${strokeColor}`;
+          if (individualWeights.bottom > 0) css['border-bottom'] = `${individualWeights.bottom}px ${strokeStyle} ${strokeColor}`;
+          if (individualWeights.left > 0) css['border-left'] = `${individualWeights.left}px ${strokeStyle} ${strokeColor}`;
+        } else if (uniformWeight > 0) {
+          css['border'] = `${uniformWeight}px ${strokeStyle} ${strokeColor}`;
+        }
+      }
+    }
+  }
+
 
 
   return {
@@ -172,5 +250,6 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
     typography,
     effects,
     svg,
+    border,
   };
 }

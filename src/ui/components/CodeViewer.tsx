@@ -17,7 +17,19 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
   const tailwindCode = transpileToTailwind(data);
 
   const formatCss = () => {
-    const entries = Object.entries(data.css);
+    const cssMap: Record<string, string> = { ...data.css };
+    if (data.border && !cssMap['border'] && !cssMap['border-top']) {
+      const { strokeWeight, individualWeights, strokeStyle, color } = data.border;
+      if (individualWeights) {
+        if (individualWeights.top > 0) cssMap['border-top'] = `${individualWeights.top}px ${strokeStyle} ${color}`;
+        if (individualWeights.right > 0) cssMap['border-right'] = `${individualWeights.right}px ${strokeStyle} ${color}`;
+        if (individualWeights.bottom > 0) cssMap['border-bottom'] = `${individualWeights.bottom}px ${strokeStyle} ${color}`;
+        if (individualWeights.left > 0) cssMap['border-left'] = `${individualWeights.left}px ${strokeStyle} ${color}`;
+      } else if (strokeWeight > 0) {
+        cssMap['border'] = `${strokeWeight}px ${strokeStyle} ${color}`;
+      }
+    }
+    const entries = Object.entries(cssMap);
     if (entries.length === 0) {
       return `/* Dimensions */\nwidth: ${data.boxModel.width}px;\nheight: ${data.boxModel.height}px;`;
     }
