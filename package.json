@@ -1,7 +1,7 @@
 {
-  "name": "figma-dev-inspector",
+  "name": "nodepeeker",
   "version": "1.0.0",
-  "description": "Figma Dev Inspector Plugin - CSS & Tailwind inspection, box model, color copier, and 1-click export for free Figma accounts",
+  "description": "NodePeeker - Figma plugin for CSS & Tailwind inspection, box model, color copier, and 1-click export",
   "private": true,
   "type": "module",
   "scripts": {

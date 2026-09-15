@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Dev Inspector (CSS & Tailwind)** is a Figma plugin that restores core developer hand-off features for free Figma accounts (replacing paid Dev Mode). It opens as a 340×580 floating iframe on the canvas and provides four features:
+**NodePeeker** is a Figma plugin that restores core developer hand-off features for free Figma accounts (replacing paid Dev Mode). It opens as a 340×580 floating iframe on the canvas and provides four features:
 
 1. **Code inspection** — Pure CSS (default tab) and auto-translated Tailwind CSS, with syntax highlighting.
 2. **Color copier** — HEX / RGB / HSL for fills and strokes, 1-click copy.
@@ -147,7 +147,13 @@ catch { success = false; }
 
 ### Styling
 - Tailwind utility classes only — no CSS modules, no styled-components.
-- Every color utility has a `dark:` variant; `tailwind.config.js` sets `darkMode: 'class'` and `useFigmaTheme()` toggles `.dark` on `<html>`.
+- **The palette is Catppuccin: Latte in light mode, Mocha in dark mode.** It is wired through CSS custom properties in `src/ui/styles.css` (`:root` = Latte, `.dark` = Mocha) and exposed as semantic tokens in `tailwind.config.js`.
+- **Use semantic tokens, never raw Tailwind palette shades.** `bg-surface0`, `text-subtext1`, `border-surface1`, `text-mauve`, `bg-green/10`. Classes like `bg-slate-800` or `text-emerald-500` are a bug — they ignore the palette.
+- **Do not add `dark:` colour variants.** The token values swap per mode, so one class covers both. `bg-surface0` is correct; `bg-surface0 dark:bg-slate-800` is redundant and wrong.
+- Token vocabulary: structural `base` `mantle` `crust` `surface0` `surface1` `surface2` `overlay0` `overlay1` `overlay2` `subtext0` `subtext1` `text`; accents `rosewater` `flamingo` `pink` `mauve` `red` `maroon` `peach` `yellow` `green` `teal` `sky` `sapphire` `blue` `lavender`.
+- Opacity modifiers work on tokens (`bg-green/10`, `border-blue/40`) and are the idiom for tinted zones — prefer one translucent accent over `-50`/`-950` pairs.
+- Because `.dark` swaps the meaning of `base` and `text`, inverted surfaces need no variants: `bg-text/95 text-base` renders a dark pill in light mode and a light pill in dark mode (see `Toast`).
+- `darkMode: 'class'` is configured; `useFigmaTheme()` toggles `.dark` on `<html>` from Figma's `figma-dark` class and `prefers-color-scheme`.
 - `styles.css` sets `user-select: none` globally. Any copyable region must opt back in with `select-all` (see `CodeHighlighter`).
 
 ### Figma API traps

@@ -6,10 +6,10 @@ figma.showUI(__html__, {
   width: 340,
   height: 580,
   themeColors: true,
-  title: 'Dev Inspector',
+  title: 'NodePeeker',
 });
 try {
-  figma.root.setRelaunchData({ open: 'Inspect CSS & Tailwind' });
+  figma.root.setRelaunchData({ open: 'NodePeeker' });
 } catch {
   // Ignore if root relaunch not supported
 }

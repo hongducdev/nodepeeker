@@ -1,12 +1,12 @@
 {
-  "name": "Dev Inspector (CSS & Tailwind)",
-  "id": "figma-dev-inspector",
+  "name": "NodePeeker",
+  "id": "nodepeeker",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/index.html",
   "editorType": ["figma"],
   "relaunchButtons": [
-    { "command": "open", "name": "Inspect CSS & Tailwind", "multipleSelection": true }
+    { "command": "open", "name": "NodePeeker", "multipleSelection": true }
   ],
   "networkAccess": {
     "allowedDomains": ["none"]

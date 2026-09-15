@@ -1,4 +1,4 @@
-# Figma Dev Inspector (CSS & Tailwind)
+# NodePeeker
 
 > A fast, zero-subscription Figma plugin replacing paid Dev Mode for free accounts. Get instant Tailwind CSS classes, pure CSS declarations, an interactive visual box model, quick color copying, and 1-click asset exports.
 
@@ -88,8 +88,8 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/figma-dev-inspector.git
-cd figma-dev-inspector
+git clone https://github.com/your-username/nodepeeker.git
+cd nodepeeker
 
 # Install dependencies
 npm install
@@ -126,8 +126,8 @@ npm install
    - Select the `manifest.json` file located in the root of this project.
 
 4. **Launch the Plugin**:
-   - Press `Shift + I` to open Figma's Resources menu, switch to the **Plugins** tab, and select **Dev Inspector (CSS & Tailwind)**.
-   - Alternatively, right-click on the canvas -> **Plugins > Development > Dev Inspector (CSS & Tailwind)**.
+   - Press `Shift + I` to open Figma's Resources menu, switch to the **Plugins** tab, and select **NodePeeker**.
+   - Alternatively, right-click on the canvas -> **Plugins > Development > NodePeeker**.
 
 5. **Start Inspecting**:
    - Click any frame, component, button, text, or vector node on the canvas.

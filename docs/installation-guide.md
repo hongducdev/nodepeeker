@@ -1,4 +1,4 @@
-# Figma Dev Inspector Plugin - Installation & Usage Guide
+# NodePeeker - Installation & Usage Guide
 
 A lightweight, zero-subscription Figma plugin replacing Dev Mode for free accounts with 1-click Pure CSS & Tailwind inspection with syntax highlighting, color copying (HEX, RGB, HSL), visual box model, keyboard shortcuts, and 1-click asset export.
 
@@ -37,7 +37,7 @@ This compiles:
 3. Click the top-left **Figma Main Menu** (or press `Ctrl + /` on Windows / `Cmd + /` on macOS).
 4. Navigate to **Plugins > Development > Import plugin from manifest...**.
 5. In the file picker, browse to the root directory of this repository and select `manifest.json`.
-6. You will see **"Dev Inspector (CSS & Tailwind)"** added under your Development plugins.
+6. You will see **"NodePeeker"** added under your Development plugins.
 
 ---
 
@@ -47,11 +47,11 @@ This compiles:
 
 | Method | Shortcut | Description |
 |---|---|---|
-| **Run Last Plugin (Fastest)** | `Ctrl + Alt + P` (Win) / `Cmd + Option + P` (Mac) | Re-launches Dev Inspector from anywhere on the canvas instantly! |
-| **Plugins & Widgets Picker** | `Shift + I` | Opens Figma's native Plugins picker; type "Dev Inspector" + Enter. |
-| **Quick Actions** | `Ctrl + /` (Win) / `Cmd + /` (Mac) | Type "Dev Inspector" and press Enter. |
-| **Canvas Relaunch Button** | 1-Click in Right Sidebar | Whenever a layer is selected, click **Inspect CSS & Tailwind** in the Plugins section. |
-| **Context Menu** | Right-click canvas | **Plugins > Development > Dev Inspector (CSS & Tailwind)** |
+| **Run Last Plugin (Fastest)** | `Ctrl + Alt + P` (Win) / `Cmd + Option + P` (Mac) | Re-launches NodePeeker from anywhere on the canvas instantly! |
+| **Plugins & Widgets Picker** | `Shift + I` | Opens Figma's native Plugins picker; type "NodePeeker" + Enter. |
+| **Quick Actions** | `Ctrl + /` (Win) / `Cmd + /` (Mac) | Type "NodePeeker" and press Enter. |
+| **Canvas Relaunch Button** | 1-Click in Right Sidebar | Whenever a layer is selected, click **NodePeeker** in the Plugins section. |
+| **Context Menu** | Right-click canvas | **Plugins > Development > NodePeeker** |
 
 ### Keyboard Shortcuts Inside the Plugin
 
