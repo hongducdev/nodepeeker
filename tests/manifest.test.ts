@@ -14,6 +14,8 @@ describe('manifest.json validation', () => {
 
   it('validates relaunchButtons schema strictly per Figma specification', () => {
     expect(Array.isArray(manifest.relaunchButtons)).toBe(true);
+    // Without this, an empty array would make the whole schema check vacuous.
+    expect(manifest.relaunchButtons.length).toBeGreaterThan(0);
     manifest.relaunchButtons.forEach((btn: Record<string, unknown>, index: number) => {
       expect(
         typeof btn.name,

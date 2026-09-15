@@ -36,8 +36,10 @@ selectionchange ─► handleSelectionChange()          src/code/code.ts
                           ├─ layout / padding / radius probes
                           ├─ typography (TEXT nodes)
                           ├─ extractColorsFromNode  src/code/color-utils.ts
-                          ├─ exportAsync({format:'SVG'})
+                          ├─ effects → shadows + opacity
+                          ├─ sizing (Hug axes) / absolute position
                           └─ border from strokes + dashPattern
+                          ✗ no exportAsync — SVG is not extracted here
                    ─► postMessage SELECTION_CHANGE {selected:true,data}
                           │
                           ▼
@@ -51,11 +53,13 @@ selectionchange ─► handleSelectionChange()          src/code/code.ts
 
 **Export flow (reverse direction):** `QuickExport` → `parent.postMessage({pluginMessage:{type:'REQUEST_EXPORT',...}})` → `code.ts` **re-reads `figma.currentPage.selection`** (it does not cache the node) → `exportAsync` → `EXPORT_RESULT`.
 
+**SVG is fetched on demand, not with the selection.** `SELECTION_CHANGE` no longer carries `svg`; the payload stops at `NodeInspectionData`. Opening the SVG tab sends `REQUEST_EXPORT {format:'SVG', action:'view'}`, which is answered by `EXPORT_RESULT` carrying the markup **and the `nodeId` it belongs to**. `App.tsx` caches exactly one node's markup (`{nodeId, content}`) and **drops any response whose `nodeId` is not the current selection**, so navigating away mid-export cannot paint another layer's markup. A request marker (`svgRequestedForRef`) makes the fetch once per node and stays armed after `EXPORT_ERROR`, so a failed export is not retried in a loop.
+
 ### Key architectural rules
 
 - **Race guard is mandatory.** `code.ts` keeps a module-level `let selectionSequence = 0`. Each handler run captures `const seq = ++selectionSequence` *before* awaiting and re-checks `if (seq !== selectionSequence) return;` *after every await*. Without this, a slow `getCSSAsync()` from an earlier selection overwrites a newer one.
 - **Derive, don't store.** Tailwind classes are computed during render (`CodeViewer` calls `transpileToTailwind(data)`), never held in state.
-- **Extraction is async only because Figma is.** `getCSSAsync()` and `exportAsync()` return promises. Everything else in `extractors.ts` is synchronous.
+- **Extraction is async only because Figma is.** `getCSSAsync()` is the only promise in `extractors.ts`; everything else there is synchronous. Vector export no longer happens during extraction — it lives behind `REQUEST_EXPORT` in `code.ts`.
 - **Cross-boundary payloads are JSON-safe only.** `Uint8Array` cannot cross `postMessage`. PNG bytes travel as `Array.from(bytes)` → `number[]` and are rebuilt with `new Uint8Array(payload.bytes)`; SVG is decoded to a `string` first via `uint8ArrayToString`.
 
 ---
@@ -236,8 +240,10 @@ npm test && npm run typecheck && npm run build
 | `tests/code-viewer.test.ts` | Renders the real `CodeViewer` via `renderToStaticMarkup` — CSS/Tailwind/SVG tabs exist, CSS stays the default, the `3`/`S` SVG shortcut hint, and CSS border merging. |
 | `tests/code-highlighter.test.ts` | Renders the real `CodeHighlighter` via `renderToStaticMarkup` — line numbering, property/value tokenization, hex swatches, comment lines, Tailwind token families, SVG element/attribute/value tokenization. |
 | `tests/manifest.test.ts` | Manifest schema — required fields, `relaunchButtons[].name`/`command` are strings, `main`/`ui` point at `dist/`. |
+| `tests/output-fidelity.test.ts` | Extraction vs. transpiler fidelity. Extraction: no vector export during `extractNodeData`; `opacity` reported independently of shadows and omitted at `1`; real shadow geometry/colour with inner-vs-drop and hidden/non-shadow effects skipped; Hug sizing mapped onto the physical axis; `ABSOLUTE` positioning flagged. Transpiler: `leading-*`/`tracking-*`, `w-fit`/`h-fit`/`self-stretch`, `absolute` + `left-[…]`/`top-[…]` offsets, real `shadow-[…]` and `opacity-*`, and **no** shadow class on a shadowless node. |
+| `tests/sandbox-protocol.test.ts` | The `REQUEST_EXPORT` router in `src/code/code.ts`. Stubs the `figma` global and `__html__`, then imports `code.ts` **dynamically** because the module reads those globals while its body evaluates (a static import would be hoisted ahead of the stubs and throw). Asserts SVG `view`/`copy`/`download` action passthrough, the echoed `nodeId`, PNG `2x` default and explicit scale, file-name sanitisation, `EXPORT_ERROR` on an empty selection, and `EXPORT_ERROR` when the export itself throws. |
 
 ### Known gaps
 - **No React interaction tests.** Components are covered only by static markup rendering (`code-highlighter.test.ts`). Event handlers, effect lifecycles, and the `App` message listener are untested — verify those by reloading in Figma.
-- **No sandbox integration tests.** `code.ts` message routing and the sequence guard are untested.
+- **Sandbox coverage is partial.** `sandbox-protocol.test.ts` covers the `REQUEST_EXPORT` router, but the `selectionchange` path and the sequence guard are still untested.
 - There is **no linter and no formatter configured**. There is no `lint` script. Match surrounding style by hand: 2-space indent, single quotes, semicolons, trailing commas, ~100-column soft wrap.

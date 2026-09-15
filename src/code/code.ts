@@ -14,22 +14,12 @@ try {
   // Ignore if root relaunch not supported
 }
 
-
-
 let selectionSequence = 0;
 
 async function handleSelectionChange() {
   const seq = ++selectionSequence;
   const selection = figma.currentPage.selection;
-  if (selection.length === 0) {
-    figma.ui.postMessage({
-      type: 'SELECTION_CHANGE',
-      payload: { selected: false, count: 0 },
-    });
-    return;
-  }
-
-  if (selection.length > 1) {
+  if (selection.length !== 1) {
     figma.ui.postMessage({
       type: 'SELECTION_CHANGE',
       payload: { selected: false, count: selection.length },
@@ -75,9 +65,7 @@ async function handleSelectionChange() {
   }
 }
 
-figma.on('selectionchange', () => {
-  handleSelectionChange();
-});
+figma.on('selectionchange', handleSelectionChange);
 
 figma.ui.onmessage = async (msg: UIToPluginMessage) => {
   if (msg.type === 'INIT_REQUEST') {
@@ -108,6 +96,7 @@ figma.ui.onmessage = async (msg: UIToPluginMessage) => {
             format: 'SVG',
             content,
             name: safeName,
+            nodeId: node.id,
             action: msg.action,
           },
         });

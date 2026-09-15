@@ -6,6 +6,10 @@ import { CodeHighlighter } from './CodeHighlighter';
 
 interface CodeViewerProps {
   data: NodeInspectionData;
+  /** Lazily fetched SVG markup for the current node, once requested. */
+  svg?: string;
+  isSvgLoading?: boolean;
+  onRequestSvg?: () => void;
   onCopy: (val: string, label: string) => void;
   copiedText: string | null;
 }
@@ -20,7 +24,14 @@ const TAB_META: Record<CodeTab, { label: string; digit: string; letter: string; 
   svg: { label: 'SVG', digit: '3', letter: 's', copyLabel: 'SVG markup' },
 };
 
-export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText }) => {
+export const CodeViewer: React.FC<CodeViewerProps> = ({
+  data,
+  svg,
+  isSvgLoading,
+  onRequestSvg,
+  onCopy,
+  copiedText,
+}) => {
   // Default to CSS per user request
   const [tab, setTab] = useState<CodeTab>('css');
 
@@ -49,10 +60,17 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
   const codeByTab: Record<CodeTab, string> = {
     css: formatCss(),
     tailwind: tailwindCode,
-    svg: data.svg ?? '',
+    svg: svg ?? '',
   };
   const activeCode = codeByTab[tab];
   const isCopied = copiedText === activeCode;
+
+  // Fetch the markup the first time the SVG tab is shown, and again when the node changes.
+  useEffect(() => {
+    if (tab === 'svg' && !svg && !isSvgLoading) {
+      onRequestSvg?.();
+    }
+  }, [tab, svg, isSvgLoading, onRequestSvg]);
 
   // Keyboard shortcuts: 1/C CSS, 2/T Tailwind, 3/S SVG, Ctrl/Cmd+C copy active code.
   useEffect(() => {
@@ -62,10 +80,11 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
         return;
       }
 
+      const key = e.key.toLowerCase();
       const isPlain = !e.ctrlKey && !e.metaKey && !e.altKey;
       if (isPlain) {
         const next = TAB_ORDER.find(
-          (id) => TAB_META[id].digit === e.key || TAB_META[id].letter === e.key.toLowerCase()
+          (id) => TAB_META[id].digit === e.key || TAB_META[id].letter === key
         );
         if (next) {
           setTab(next);
@@ -73,7 +92,7 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
         }
       }
 
-      if ((e.ctrlKey || e.metaKey || e.altKey) && e.key.toLowerCase() === 'c') {
+      if ((e.ctrlKey || e.metaKey || e.altKey) && key === 'c') {
         // Mirror the Copy button's disabled state: never copy an empty tab
         // (e.g. a node whose SVG export failed), which would clear the
         // clipboard and report a copy that did not happen.
@@ -138,7 +157,11 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data, onCopy, copiedText
       </div>
 
       <div className="relative rounded-md bg-crust text-text p-2.5 overflow-x-auto max-h-56 scrollbar-thin border border-surface0">
-        <CodeHighlighter code={activeCode} language={tab} />
+        {tab === 'svg' && isSvgLoading && !svg ? (
+          <span className="text-overlay1 italic">Loading SVG…</span>
+        ) : (
+          <CodeHighlighter code={activeCode} language={tab} />
+        )}
       </div>
     </div>
   );

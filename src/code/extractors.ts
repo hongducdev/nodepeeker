@@ -1,5 +1,5 @@
-import { BoxModelData, NodeInspectionData, TypographyData, BorderData } from '../types/messages';
-import { extractColorsFromNode, uint8ArrayToString, rgbToHex } from './color-utils';
+import { BoxModelData, NodeInspectionData, TypographyData, BorderData, ShadowData } from '../types/messages';
+import { extractColorsFromNode, rgbToHex } from './color-utils';
 
 export async function extractNodeData(node: SceneNode): Promise<NodeInspectionData> {
   const width = Math.round(('width' in node ? node.width : 0) * 100) / 100;
@@ -54,21 +54,17 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
     cornerRadius,
   };
 
-  let css: Record<string, string> = {};
+  // The dimension fallback is also the result when Figma cannot produce CSS.
+  let css: Record<string, string> = {
+    width: `${width}px`,
+    height: `${height}px`,
+  };
   if ('getCSSAsync' in node && typeof node.getCSSAsync === 'function') {
     try {
       css = await node.getCSSAsync();
     } catch {
-      css = {
-        width: `${width}px`,
-        height: `${height}px`,
-      };
+      // Keep the fallback.
     }
-  } else {
-    css = {
-      width: `${width}px`,
-      height: `${height}px`,
-    };
   }
 
   let layoutMode: 'NONE' | 'HORIZONTAL' | 'VERTICAL' = 'NONE';
@@ -133,28 +129,51 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
     };
   }
 
-  let effects: NodeInspectionData['effects'];
+  const shadows: ShadowData[] = [];
   if ('effects' in node && Array.isArray(node.effects)) {
-    const dropShadow = node.effects.find((e) => e.type === 'DROP_SHADOW' && e.visible !== false);
-    if (dropShadow) {
-      effects = {
-        hasDropShadow: true,
-        shadowType: 'md',
-        opacity: 'opacity' in node && typeof node.opacity === 'number' ? node.opacity : 1,
-      };
+    for (const effect of node.effects) {
+      if (effect.visible === false) continue;
+      if (effect.type !== 'DROP_SHADOW' && effect.type !== 'INNER_SHADOW') continue;
+      shadows.push({
+        inner: effect.type === 'INNER_SHADOW',
+        offsetX: Math.round(effect.offset.x * 100) / 100,
+        offsetY: Math.round(effect.offset.y * 100) / 100,
+        blur: Math.round(effect.radius * 100) / 100,
+        spread: Math.round((effect.spread ?? 0) * 100) / 100,
+        color: rgbToHex(effect.color.r, effect.color.g, effect.color.b),
+        opacity: Math.round((typeof effect.color.a === 'number' ? effect.color.a : 1) * 100) / 100,
+      });
     }
   }
 
-  const colors = extractColorsFromNode(node);
-  let svg: string | undefined;
-  if ('exportAsync' in node && typeof node.exportAsync === 'function') {
-    try {
-      const bytes = await node.exportAsync({ format: 'SVG' });
-      svg = uint8ArrayToString(bytes);
-    } catch {
-      // ignore export failure
-    }
+  // Node opacity is independent of shadows; hoisting it avoids losing the value on
+  // a translucent node that happens to have no shadow.
+  const nodeOpacity =
+    'opacity' in node && typeof node.opacity === 'number' ? Math.round(node.opacity * 100) / 100 : 1;
+
+  let sizing: NodeInspectionData['sizing'];
+  if (
+    'primaryAxisSizingMode' in node &&
+    typeof node.primaryAxisSizingMode === 'string' &&
+    'counterAxisSizingMode' in node &&
+    typeof node.counterAxisSizingMode === 'string'
+  ) {
+    const primaryHugs = node.primaryAxisSizingMode === 'AUTO';
+    const counterHugs = node.counterAxisSizingMode === 'AUTO';
+    // The primary axis is the layout direction, so it maps to a different physical
+    // axis depending on orientation.
+    sizing =
+      layoutMode === 'VERTICAL'
+        ? { hugHorizontal: counterHugs, hugVertical: primaryHugs }
+        : { hugHorizontal: primaryHugs, hugVertical: counterHugs };
   }
+
+  const position =
+    'layoutPositioning' in node && node.layoutPositioning === 'ABSOLUTE'
+      ? { absolute: true }
+      : undefined;
+
+  const colors = extractColorsFromNode(node);
   let border: BorderData | undefined;
   if ('strokes' in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
     const visibleStroke = node.strokes.find((s) => s.visible !== false);
@@ -256,8 +275,10 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
     layoutGrow,
     layoutAlign,
     typography,
-    effects,
-    svg,
     border,
+    opacity: nodeOpacity === 1 ? undefined : nodeOpacity,
+    shadows: shadows.length > 0 ? shadows : undefined,
+    sizing,
+    position,
   };
 }

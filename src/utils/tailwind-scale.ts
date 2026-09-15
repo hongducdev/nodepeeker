@@ -1,3 +1,5 @@
+import { ShadowData } from '../types/messages';
+
 export const SPACING_SCALE: Record<number, string> = {
   0: '0',
   1: 'px',
@@ -103,4 +105,76 @@ export function toTailwindFontWeight(weight: string | number): string {
   if (wStr.includes('black') || wStr === '900') return 'font-black';
   if (wStr.includes('bold') || wStr === '700') return 'font-bold';
   return 'font-normal';
+}
+
+/**
+ * Figma line height arrives as `${n}px` or `${n}%`.
+ * Percent becomes a unitless Tailwind ratio; pixels stay pixels.
+ */
+export function toTailwindLineHeight(lineHeight: number | string | undefined): string | null {
+  if (lineHeight === undefined) return null;
+  const raw = String(lineHeight);
+  const isPercent = raw.endsWith('%');
+  if (!isPercent && !raw.endsWith('px')) return null;
+
+  const value = Number.parseFloat(raw);
+  if (!Number.isFinite(value) || value <= 0) return null;
+
+  return isPercent ? `leading-[${Math.round((value / 100) * 100) / 100}]` : `leading-[${value}px]`;
+}
+
+/** Percent letter spacing is relative to the font size, which is what `em` means. */
+export function toTailwindLetterSpacing(letterSpacing: number | string | undefined): string | null {
+  if (letterSpacing === undefined) return null;
+  const raw = String(letterSpacing);
+  const isPercent = raw.endsWith('%');
+  if (!isPercent && !raw.endsWith('px')) return null;
+
+  const value = Number.parseFloat(raw);
+  // Exact zero is the default, but negative tracking is meaningful, so only zero is dropped.
+  if (!Number.isFinite(value) || value === 0) return null;
+
+  return isPercent
+    ? `tracking-[${Math.round((value / 100) * 1000) / 1000}em]`
+    : `tracking-[${value}px]`;
+}
+
+/** Uses the 5-step Tailwind opacity scale when it matches exactly, else arbitrary. */
+export function toTailwindOpacity(opacity: number): string | null {
+  if (!Number.isFinite(opacity) || opacity >= 1 || opacity < 0) return null;
+  const pct = Math.round(opacity * 100);
+  return pct % 5 === 0 ? `opacity-${pct}` : `opacity-[${opacity}]`;
+}
+
+/**
+ * Shadows are emitted verbatim in Tailwind arbitrary syntax rather than snapped to
+ * `shadow-sm`/`md`/`lg`: a named preset would be a guess about a value Figma knows exactly.
+ * Spaces become underscores per Tailwind's arbitrary-value escaping; multiple layers are
+ * comma-joined inside a single bracket pair, since two `shadow-*` classes would collide.
+ */
+export function toTailwindShadow(shadows: readonly ShadowData[]): string | null {
+  if (shadows.length === 0) return null;
+
+  const layers = shadows.map(
+    ({ inner, offsetX, offsetY, blur, spread, color, opacity }) =>
+      `${inner ? 'inset_' : ''}${offsetX}px_${offsetY}px_${blur}px_${spread}px_` +
+      `rgba(${hexToRgbTriplet(color)},${opacity})`
+  );
+
+  return `shadow-[${layers.join(',')}]`;
+}
+
+function hexToRgbTriplet(hex: string): string {
+  const clean = hex.replace('#', '');
+  const full =
+    clean.length === 3
+      ? clean
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : clean;
+  const r = Number.parseInt(full.slice(0, 2), 16) || 0;
+  const g = Number.parseInt(full.slice(2, 4), 16) || 0;
+  const b = Number.parseInt(full.slice(4, 6), 16) || 0;
+  return `${r},${g},${b}`;
 }

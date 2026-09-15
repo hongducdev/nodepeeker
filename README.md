@@ -15,7 +15,7 @@
 ### 💻 Inspect Code Viewer (Default: Pure CSS)
 - **Pure CSS First:** Automatically displays standard, clean CSS declarations by default with live color chips, line numbers, and formatted rules ready to paste.
 - **Syntax Highlighting:** Real-time token highlighting for properties, values, units, hex colors, and Tailwind utility categories.
-- **Tailwind CSS Generation:** Easily toggle to Tailwind utility classes with color-coded token badges.
+- **Tailwind CSS Generation:** Easily toggle to Tailwind utility classes with color-coded token badges. The output carries the layer's **real** values rather than presets: shadows are emitted as arbitrary `shadow-[0px_4px_8px_2px_rgba(0,0,0,0.25)]` utilities (never a rounded `shadow-md` name), text line-height and letter-spacing become `leading-*` / `tracking-*`, Hug-sized frames map to `w-fit` / `h-fit`, stretched children to `self-stretch`, absolutely positioned layers to `absolute` plus `left-[…]` / `top-[…]` offsets, and node opacity to `opacity-*`.
 - **SVG Markup:** Switch to the SVG tab for the layer's exported markup, with element and attribute names highlighted and hex fills shown as live color swatches.
 - **Keyboard Shortcuts:** Press `1` or `C` for CSS, `2` or `T` for Tailwind, `3` or `S` for SVG, and `Ctrl+C` / `Cmd+C` to copy active code.
 - **Quick Launch in Figma:** Press `Ctrl+Alt+P` (Windows) / `Cmd+Option+P` (Mac) to re-run the plugin from anywhere on canvas, or `Shift+I` to pick from the Plugins drawer.

@@ -64,10 +64,17 @@ describe('tailwind-transpiler', () => {
       layoutMode: 'VERTICAL',
       primaryAxisAlign: 'MIN',
       counterAxisAlign: 'MIN',
-      effects: {
-        hasDropShadow: true,
-        shadowType: 'md',
-      },
+      shadows: [
+        {
+          inner: false,
+          offsetX: 0,
+          offsetY: 1,
+          blur: 3,
+          spread: 0,
+          color: '#000000',
+          opacity: 0.1,
+        },
+      ],
     };
 
     const result = transpileToTailwind(cardData);
@@ -77,7 +84,7 @@ describe('tailwind-transpiler', () => {
     expect(result).toContain('bg-[#FFFFFF]');
     expect(result).toContain('border border-[#E2E8F0]');
     expect(result).toContain('rounded-2xl');
-    expect(result).toContain('shadow-md');
+    expect(result).toContain('shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1)]');
   });
 
   it('transpiles text typography accurately', () => {

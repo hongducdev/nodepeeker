@@ -28,6 +28,7 @@ export interface TypographyData {
   letterSpacing?: number | string;
   textAlign?: 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED';
 }
+
 export interface BorderData {
   strokeWeight: number;
   individualWeights?: {
@@ -42,6 +43,16 @@ export interface BorderData {
   color: string;
 }
 
+/** A real Figma shadow effect, reported verbatim rather than rounded to a preset. */
+export interface ShadowData {
+  inner: boolean;
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  spread: number;
+  color: string;
+  opacity: number;
+}
 
 export interface NodeInspectionData {
   id: string;
@@ -56,13 +67,14 @@ export interface NodeInspectionData {
   layoutGrow?: number;
   layoutAlign?: 'STRETCH' | 'INHERIT';
   typography?: TypographyData;
-  effects?: {
-    hasDropShadow: boolean;
-    shadowType?: 'sm' | 'base' | 'md' | 'lg' | 'xl' | '2xl' | 'inner';
-    opacity?: number;
-  };
-  svg?: string;
   border?: BorderData;
+  /** 0..1. Independent of shadows -- a translucent node need not have one. */
+  opacity?: number;
+  shadows?: ShadowData[];
+  /** Auto-layout Hug sizing (`primaryAxisSizingMode` / `counterAxisSizingMode` = AUTO). */
+  sizing?: { hugHorizontal: boolean; hugVertical: boolean };
+  /** Child of an auto-layout frame pinned with `layoutPositioning: 'ABSOLUTE'`. */
+  position?: { absolute: boolean };
 }
 
 export type SelectionState =
@@ -74,11 +86,16 @@ export type PluginToUIMessage =
   | {
       type: 'EXPORT_RESULT';
       payload:
-        | { format: 'SVG'; content: string; name: string; action: 'copy' | 'download' }
+        | { format: 'SVG'; content: string; name: string; nodeId: string; action: 'copy' | 'download' | 'view' }
         | { format: 'PNG'; bytes: number[]; name: string; action: 'download' };
     }
   | { type: 'EXPORT_ERROR'; error: string };
 
 export type UIToPluginMessage =
-  | { type: 'REQUEST_EXPORT'; format: 'SVG' | 'PNG'; scale?: number; action: 'copy' | 'download' }
+  | {
+      type: 'REQUEST_EXPORT';
+      format: 'SVG' | 'PNG';
+      scale?: number;
+      action: 'copy' | 'download' | 'view';
+    }
   | { type: 'INIT_REQUEST' };
