@@ -48,10 +48,19 @@ describe('CodeHighlighter', () => {
     expect(html).toContain('background-color:#2563EB');
   });
 
-  it('categorizes Tailwind tokens so different utility families are visually distinct', () => {
-    const html = render('p-4 text-sm', 'tailwind');
-    // Spacing family vs typography family must not collapse to one shared style.
-    expect(html).toContain('text-emerald-400');
-    expect(html).toContain('text-pink-400');
+  it('gives different Tailwind utility families distinct colours', () => {
+    // Assert the contract (families stay visually distinguishable), not the
+    // specific palette shades -- those are a design choice that may change.
+    const chipClass = (code: string) => {
+      const html = render(code, 'tailwind');
+      return html.match(/<span class="(inline-flex[^"]*)"/)?.[1] ?? '';
+    };
+
+    const spacing = chipClass('p-4');
+    const typography = chipClass('text-sm');
+
+    expect(spacing).not.toBe('');
+    expect(typography).not.toBe('');
+    expect(spacing).not.toBe(typography);
   });
 });

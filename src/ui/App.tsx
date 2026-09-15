@@ -71,13 +71,13 @@ export const App: React.FC = () => {
   }, [copy]);
 
   return (
-    <div className="flex flex-col h-screen w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 select-none overflow-hidden font-sans">
+    <div className="flex flex-col h-screen w-full bg-base text-text select-none overflow-hidden font-sans">
       {!selection.selected ? (
         <EmptyState count={selection.count} />
       ) : (
         <>
           <Header data={selection.data} />
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto divide-y divide-surface0 scrollbar-thin">
             <BoxModel
               boxModel={selection.data.boxModel}
               border={selection.data.border}

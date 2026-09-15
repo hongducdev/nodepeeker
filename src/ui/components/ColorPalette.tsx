@@ -27,23 +27,23 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({ colors, onCopy, copi
   }
 
   return (
-    <div className="p-3 border-b border-slate-200 dark:border-slate-800">
+    <div className="p-3 border-b border-surface0">
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-1 text-[11px] font-medium text-overlay1">
           <Palette size={12} />
           <span>Colors & Swatches ({colors.length})</span>
         </div>
 
         {/* Format switchers */}
-        <div className="flex items-center rounded bg-slate-100 dark:bg-slate-800 p-0.5 text-[10px] font-mono">
+        <div className="flex items-center rounded bg-surface0 p-0.5 text-[10px] font-mono">
           {(['HEX', 'RGB', 'HSL'] as const).map((fmt) => (
             <button
               key={fmt}
               onClick={() => setFormat(fmt)}
               className={`px-1.5 py-0.5 rounded transition ${
                 format === fmt
-                  ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-semibold shadow-xs'
-                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                  ? 'bg-surface2 text-text font-semibold shadow-xs'
+                  : 'text-overlay1 hover:text-text'
               }`}
             >
               {fmt}
@@ -61,11 +61,11 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({ colors, onCopy, copi
             <div
               key={`${c.hex}-${c.source}-${index}`}
               onClick={() => onCopy(val, val)}
-              className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800/60 transition cursor-pointer group"
+              className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-surface0/60 transition cursor-pointer group"
             >
               <div className="flex items-center gap-2 min-w-0">
                 {/* Swatch circle with checkering for alpha */}
-                <div className="relative w-4 h-4 rounded-full border border-slate-300 dark:border-slate-600 shrink-0 overflow-hidden shadow-xs">
+                <div className="relative w-4 h-4 rounded-full border border-surface2 shrink-0 overflow-hidden shadow-xs">
                   <div
                     className="absolute inset-0"
                     style={{ backgroundColor: c.rgba }}
@@ -73,11 +73,11 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({ colors, onCopy, copi
                 </div>
 
                 <div className="flex items-center gap-1.5 truncate">
-                  <span className="text-xs font-mono font-medium text-slate-800 dark:text-slate-200 truncate">
+                  <span className="text-xs font-mono font-medium text-text truncate">
                     {val}
                   </span>
                   {c.opacity < 1 && (
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="text-[10px] font-mono text-overlay0">
                       {Math.round(c.opacity * 100)}%
                     </span>
                   )}
@@ -85,13 +85,13 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({ colors, onCopy, copi
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[9px] uppercase tracking-wide font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500">
+                <span className="text-[9px] uppercase tracking-wide font-mono px-1 py-0.2 rounded bg-surface0 text-overlay0">
                   {c.name || c.source}
                 </span>
 
-                <div className="text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition">
+                <div className="text-overlay0 group-hover:text-text transition">
                   {isCopied ? (
-                    <Check size={12} className="text-emerald-500" />
+                    <Check size={12} className="text-green" />
                   ) : (
                     <Copy size={12} className="opacity-0 group-hover:opacity-100 transition" />
                   )}

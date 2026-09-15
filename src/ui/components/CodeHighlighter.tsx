@@ -7,7 +7,7 @@ interface CodeHighlighterProps {
 
 export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language }) => {
   if (!code) {
-    return <span className="text-slate-500 italic">/* No styles extracted */</span>;
+    return <span className="text-overlay1 italic">/* No styles extracted */</span>;
   }
 
   if (language === 'css') {
@@ -21,10 +21,10 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
           if (trimmed.startsWith('/*')) {
             return (
               <div key={idx} className="flex">
-                <span className="select-none text-slate-600 dark:text-slate-600 w-5 text-right pr-2 shrink-0 text-[10px]">
+                <span className="select-none text-overlay1 w-5 text-right pr-2 shrink-0 text-[10px]">
                   {idx + 1}
                 </span>
-                <span className="text-slate-500 italic">{line}</span>
+                <span className="text-overlay0 italic">{line}</span>
               </div>
             );
           }
@@ -42,15 +42,15 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
             const tokens = tokenizeCssValue(value);
 
             return (
-              <div key={idx} className="flex leading-relaxed hover:bg-slate-800/40 px-1 rounded transition-colors">
-                <span className="select-none text-slate-600 dark:text-slate-600 w-5 text-right pr-2 shrink-0 text-[10px]">
+              <div key={idx} className="flex leading-relaxed hover:bg-surface0/40 px-1 rounded transition-colors">
+                <span className="select-none text-overlay1 w-5 text-right pr-2 shrink-0 text-[10px]">
                   {idx + 1}
                 </span>
                 <div className="flex-1">
-                  <span className="text-sky-400 font-medium">{property}</span>
-                  <span className="text-slate-500">:</span>
+                  <span className="text-blue font-medium">{property}</span>
+                  <span className="text-overlay1">:</span>
                   <span>{tokens}</span>
-                  <span className="text-slate-500">{semi}</span>
+                  <span className="text-overlay1">{semi}</span>
                 </div>
               </div>
             );
@@ -58,10 +58,10 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
 
           return (
             <div key={idx} className="flex leading-relaxed">
-              <span className="select-none text-slate-600 dark:text-slate-600 w-5 text-right pr-2 shrink-0 text-[10px]">
+              <span className="select-none text-overlay1 w-5 text-right pr-2 shrink-0 text-[10px]">
                 {idx + 1}
               </span>
-              <span className="text-slate-300">{line}</span>
+              <span className="text-text">{line}</span>
             </div>
           );
         })}
@@ -80,11 +80,11 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
         return (
           <span
             key={idx}
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800/60 border border-slate-700/50 ${colorClass}`}
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface0/60 border border-surface1/60 ${colorClass}`}
           >
             {hexMatch && (
               <span
-                className="inline-block w-2 h-2 rounded-full border border-slate-600 shrink-0 shadow-xs"
+                className="inline-block w-2 h-2 rounded-full border border-surface2 shrink-0 shadow-xs"
                 style={{ backgroundColor: `#${hexMatch[1]}` }}
               />
             )}
@@ -113,9 +113,9 @@ function tokenizeCssValue(val: string): React.ReactNode[] {
 
     if (hex) {
       nodes.push(
-        <span key={key} className="inline-flex items-center gap-1 text-amber-300 font-semibold">
+        <span key={key} className="inline-flex items-center gap-1 text-peach font-semibold">
           <span
-            className="inline-block w-2.5 h-2.5 rounded-full border border-slate-600 shrink-0 shadow-xs"
+            className="inline-block w-2.5 h-2.5 rounded-full border border-surface2 shrink-0 shadow-xs"
             style={{ backgroundColor: hex }}
           />
           {hex}
@@ -123,19 +123,19 @@ function tokenizeCssValue(val: string): React.ReactNode[] {
       );
     } else if (num) {
       nodes.push(
-        <span key={key} className="text-emerald-400 font-medium">
+        <span key={key} className="text-green font-medium">
           {num}
         </span>
       );
     } else if (str) {
       nodes.push(
-        <span key={key} className="text-amber-200">
+        <span key={key} className="text-yellow">
           {str}
         </span>
       );
     } else if (word) {
       nodes.push(
-        <span key={key} className="text-indigo-300">
+        <span key={key} className="text-mauve">
           {word}
         </span>
       );
@@ -155,28 +155,28 @@ function tokenizeCssValue(val: string): React.ReactNode[] {
 
 function getTailwindClassStyle(cls: string): string {
   if (cls.startsWith('flex') || cls.startsWith('justify-') || cls.startsWith('items-') || cls.startsWith('grid')) {
-    return 'text-purple-400';
+    return 'text-mauve';
   }
   if (cls.startsWith('w-') || cls.startsWith('h-') || cls.startsWith('min-') || cls.startsWith('max-')) {
-    return 'text-sky-400';
+    return 'text-sky';
   }
   if (cls.startsWith('p-') || cls.startsWith('px-') || cls.startsWith('py-') || cls.startsWith('pt-') || cls.startsWith('pr-') || cls.startsWith('pb-') || cls.startsWith('pl-') || cls.startsWith('gap-') || cls.startsWith('m-')) {
-    return 'text-emerald-400';
+    return 'text-green';
   }
   if (cls.startsWith('text-') && !cls.includes('#')) {
-    return 'text-pink-400';
+    return 'text-pink';
   }
   if (cls.startsWith('font-') || cls.startsWith('leading-') || cls.startsWith('tracking-')) {
-    return 'text-pink-400';
+    return 'text-pink';
   }
   if (cls.startsWith('bg-') || cls.includes('#')) {
-    return 'text-amber-300';
+    return 'text-peach';
   }
   if (cls.startsWith('rounded') || cls.startsWith('border')) {
-    return 'text-teal-400';
+    return 'text-teal';
   }
   if (cls.startsWith('shadow') || cls.startsWith('opacity')) {
-    return 'text-indigo-400';
+    return 'text-lavender';
   }
-  return 'text-slate-300';
+  return 'text-text';
 }

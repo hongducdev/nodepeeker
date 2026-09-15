@@ -62,22 +62,22 @@ export const BorderStyle: React.FC<BorderStyleProps> = ({ border, onCopy, copied
   };
 
   return (
-    <div className="p-3 border-b border-slate-200 dark:border-slate-800">
+    <div className="p-3 border-b border-surface0">
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-          <Square size={12} className="text-amber-500" />
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-overlay1">
+          <Square size={12} className="text-peach" />
           <span>Border & Stroke Style</span>
         </div>
 
         <div className="flex items-center gap-1">
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface0 text-subtext1 font-medium">
             {getBorderWidthLabel()}
           </span>
-          <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+          <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface0 text-overlay1">
             {strokeStyle}
           </span>
           {strokeAlign && (
-            <span className="text-[10px] font-mono lowercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400">
+            <span className="text-[10px] font-mono lowercase px-1.5 py-0.5 rounded bg-surface0 text-overlay0">
               {strokeAlign}
             </span>
           )}
@@ -86,7 +86,7 @@ export const BorderStyle: React.FC<BorderStyleProps> = ({ border, onCopy, copied
 
       {/* Visual Live Border Preview */}
       <div
-        className="w-full py-1.5 px-3 mb-2 rounded bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between text-xs font-mono transition"
+        className="w-full py-1.5 px-3 mb-2 rounded bg-mantle/60 flex items-center justify-between text-xs font-mono transition"
         style={{
           borderTopWidth: individualWeights ? `${individualWeights.top}px` : `${strokeWeight}px`,
           borderRightWidth: individualWeights ? `${individualWeights.right}px` : `${strokeWeight}px`,
@@ -96,12 +96,12 @@ export const BorderStyle: React.FC<BorderStyleProps> = ({ border, onCopy, copied
           borderColor: color,
         }}
       >
-        <span className="text-[11px] text-slate-700 dark:text-slate-200 font-semibold truncate">
+        <span className="text-[11px] text-subtext1 font-semibold truncate">
           {cssDeclaration.replace(/\n/g, ' ')}
         </span>
         <div className="flex items-center gap-1 shrink-0 ml-2">
           <div
-            className="w-2.5 h-2.5 rounded-full border border-slate-400 shrink-0"
+            className="w-2.5 h-2.5 rounded-full border border-surface2 shrink-0"
             style={{ backgroundColor: color }}
           />
         </div>
@@ -111,12 +111,12 @@ export const BorderStyle: React.FC<BorderStyleProps> = ({ border, onCopy, copied
       <div className="grid grid-cols-2 gap-1.5">
         <button
           onClick={() => onCopy(cssDeclaration, 'Border CSS')}
-          className="flex items-center justify-between px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-medium transition group"
+          className="flex items-center justify-between px-2 py-1 rounded bg-surface0 hover:bg-surface1 text-subtext1 text-[10px] font-medium transition group"
           title="Copy border CSS property"
         >
           <span className="truncate">CSS Border</span>
           {isCssCopied ? (
-            <Check size={11} className="text-emerald-500 shrink-0 ml-1" />
+            <Check size={11} className="text-green shrink-0 ml-1" />
           ) : (
             <Copy size={11} className="opacity-40 group-hover:opacity-100 shrink-0 ml-1" />
           )}
@@ -124,12 +124,12 @@ export const BorderStyle: React.FC<BorderStyleProps> = ({ border, onCopy, copied
 
         <button
           onClick={() => onCopy(tailwindDeclaration, 'Border Tailwind')}
-          className="flex items-center justify-between px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-medium transition group"
+          className="flex items-center justify-between px-2 py-1 rounded bg-surface0 hover:bg-surface1 text-subtext1 text-[10px] font-medium transition group"
           title="Copy border Tailwind classes"
         >
           <span className="truncate">Tailwind Border</span>
           {isTailwindCopied ? (
-            <Check size={11} className="text-emerald-500 shrink-0 ml-1" />
+            <Check size={11} className="text-green shrink-0 ml-1" />
           ) : (
             <Copy size={11} className="opacity-40 group-hover:opacity-100 shrink-0 ml-1" />
           )}

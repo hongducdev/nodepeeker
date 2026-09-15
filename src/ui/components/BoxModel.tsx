@@ -30,9 +30,9 @@ export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, border, layoutMode
   const radiusStr = renderRadius();
 
   return (
-    <div className="p-3 border-b border-slate-200 dark:border-slate-800">
+    <div className="p-3 border-b border-surface0">
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-1 text-[11px] font-medium text-overlay1">
           <Maximize2 size={12} />
           <span>Box Model & Layout</span>
         </div>
@@ -54,11 +54,11 @@ export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, border, layoutMode
             return (
               <button
                 onClick={() => onCopy(copyValue, 'Border')}
-                className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 transition flex items-center gap-1"
+                className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-peach/15 text-peach border border-peach/40 hover:bg-peach/25 transition flex items-center gap-1"
                 title="Click to copy border"
               >
                 <span
-                  className="inline-block w-2 h-2 rounded-full border border-amber-400"
+                  className="inline-block w-2 h-2 rounded-full border border-peach/60"
                   style={{ backgroundColor: border.color }}
                 />
                 <span>b: {label}</span>
@@ -68,7 +68,7 @@ export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, border, layoutMode
           {radiusStr !== '0' && (
             <button
               onClick={() => onCopy(radiusStr, `Radius ${radiusStr}`)}
-              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface0 text-subtext0 hover:bg-surface1 transition"
               title="Click to copy radius"
             >
               r: {radiusStr}
@@ -78,14 +78,14 @@ export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, border, layoutMode
       </div>
 
       {/* Outer geometry box */}
-      <div className="relative border border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
-        <div className="text-[9px] uppercase tracking-wider font-mono text-slate-400 dark:text-slate-500 absolute top-1 left-2">
+      <div className="relative border border-dashed border-surface1 rounded-lg p-2.5 bg-mantle/60">
+        <div className="text-[9px] uppercase tracking-wider font-mono text-overlay0 absolute top-1 left-2">
           Bounds
         </div>
 
         {/* Padding Zone */}
-        <div className="mt-2 relative border border-emerald-300/60 dark:border-emerald-500/30 rounded bg-emerald-50/40 dark:bg-emerald-950/20 p-2.5">
-          <div className="text-[9px] uppercase tracking-wider font-mono text-emerald-600/70 dark:text-emerald-400/70 absolute top-0.5 left-1.5">
+        <div className="mt-2 relative border border-green/40 rounded bg-green/10 p-2.5">
+          <div className="text-[9px] uppercase tracking-wider font-mono text-green/80 absolute top-0.5 left-1.5">
             Padding
           </div>
 
@@ -93,7 +93,7 @@ export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, border, layoutMode
           <div className="flex justify-center -mt-1">
             <button
               onClick={() => onCopy(`${paddingTop}px`, `Padding top ${paddingTop}px`)}
-              className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 hover:font-bold transition"
+              className="text-[10px] font-mono text-green hover:font-bold transition"
             >
               {paddingTop}
             </button>
@@ -103,16 +103,16 @@ export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, border, layoutMode
             {/* Left padding */}
             <button
               onClick={() => onCopy(`${paddingLeft}px`, `Padding left ${paddingLeft}px`)}
-              className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 hover:font-bold transition"
+              className="text-[10px] font-mono text-green hover:font-bold transition"
             >
               {paddingLeft}
             </button>
 
             {/* Inner Content Area */}
-            <div className="flex-1 mx-2 py-2 px-3 border border-blue-300/80 dark:border-blue-500/40 rounded bg-blue-50/60 dark:bg-blue-950/30 flex flex-col items-center justify-center">
+            <div className="flex-1 mx-2 py-2 px-3 border border-blue/40 rounded bg-blue/10 flex flex-col items-center justify-center">
               <button
                 onClick={() => onCopy(`${width} × ${height}px`, `${width} × ${height}px`)}
-                className="text-[11px] font-mono font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+                className="text-[11px] font-mono font-semibold text-blue hover:underline"
               >
                 {width} × {height}
               </button>
@@ -120,13 +120,13 @@ export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, border, layoutMode
               {gap > 0 && (
                 <div className="flex items-center gap-1 mt-0.5">
                   {layoutMode === 'VERTICAL' ? (
-                    <MoveVertical size={10} className="text-purple-500" />
+                    <MoveVertical size={10} className="text-mauve" />
                   ) : (
-                    <MoveHorizontal size={10} className="text-purple-500" />
+                    <MoveHorizontal size={10} className="text-mauve" />
                   )}
                   <button
                     onClick={() => onCopy(`${gap}px`, `Gap ${gap}px`)}
-                    className="text-[10px] font-mono text-purple-600 dark:text-purple-400 hover:underline"
+                    className="text-[10px] font-mono text-mauve hover:underline"
                   >
                     gap: {gap}px
                   </button>
@@ -137,7 +137,7 @@ export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, border, layoutMode
             {/* Right padding */}
             <button
               onClick={() => onCopy(`${paddingRight}px`, `Padding right ${paddingRight}px`)}
-              className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 hover:font-bold transition"
+              className="text-[10px] font-mono text-green hover:font-bold transition"
             >
               {paddingRight}
             </button>
@@ -147,7 +147,7 @@ export const BoxModel: React.FC<BoxModelProps> = ({ boxModel, border, layoutMode
           <div className="flex justify-center -mb-1">
             <button
               onClick={() => onCopy(`${paddingBottom}px`, `Padding bottom ${paddingBottom}px`)}
-              className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 hover:font-bold transition"
+              className="text-[10px] font-mono text-green hover:font-bold transition"
             >
               {paddingBottom}
             </button>
