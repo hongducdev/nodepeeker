@@ -45,9 +45,10 @@ async function handleSelectionChange() {
       type: 'SELECTION_CHANGE',
       payload: { selected: true, data },
     });
-  } catch (err) {
+  } catch {
     if (seq !== selectionSequence) return;
     figma.ui.postMessage({
+      type: 'SELECTION_CHANGE',
       payload: {
         selected: true,
         data: {

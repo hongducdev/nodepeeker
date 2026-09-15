@@ -91,7 +91,9 @@ export function toTailwindFontSize(px: number): string {
 }
 
 export function toTailwindFontWeight(weight: string | number): string {
-  const wStr = String(weight).toLowerCase();
+  // Figma font style names contain spaces ("Semi Bold", "Extra Light"); strip
+  // everything but alphanumerics so substring matching works for both spellings.
+  const wStr = String(weight).toLowerCase().replace(/[^a-z0-9]/g, '');
   if (wStr.includes('thin') || wStr === '100') return 'font-thin';
   if (wStr.includes('extralight') || wStr === '200') return 'font-extralight';
   if (wStr.includes('light') || wStr === '300') return 'font-light';

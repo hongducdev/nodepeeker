@@ -154,7 +154,7 @@ catch { success = false; }
 - **`type` is required on every `postMessage`.** The UI switches on `msg.type`; a message without one is silently dropped.
 - Opt-in booleans are `undefined` by default: test `paint.visible === false`, never `!paint.visible`.
 - `node.strokes.length > 0` does not imply a visible border — find the first stroke with `visible !== false`.
-- Figma font style names contain spaces (`"Semi Bold"`). Substring matchers must be space-insensitive.
+- Figma font style names contain spaces (`"Semi Bold"`, `"Extra Light"`). `toTailwindFontWeight` normalizes with `replace(/[^a-z0-9]/g, '')` before matching, and checks specific weights (`extrabold`, `semibold`) before broad ones (`bold`). Preserve both properties when editing it.
 - Scale tables (`SPACING_SCALE`, `RADIUS_SCALE`, `FONT_SIZE_SCALE`) use exact integer keys; fractional Figma values fall through to arbitrary syntax (`w-[123.45px]`, `rounded-[5px]`). `RADIUS_SCALE[4]` maps to `''` to emit bare `rounded`.
 - Revoke blob URLs **asynchronously** — `setTimeout(() => URL.revokeObjectURL(url), 1000)`. Synchronous revocation cancels the download.
 - Clipboard is unreliable in the Figma iframe: try `navigator.clipboard` behind `window.isSecureContext`, then fall back to a hidden textarea + `document.execCommand('copy')`.
@@ -222,12 +222,13 @@ npm test && npm run typecheck && npm run build
 |---|---|
 | `tests/border-extraction.test.ts` | Border scoping — node-owned stroke produces a border; a parent with **child-only** strokes must NOT; zero weight defaults to `1px`; `dashPattern` → dashed vs dotted. |
 | `tests/tailwind-transpiler.test.ts` | End-to-end class output for button, card, text, asymmetric padding, per-corner radii. |
+| `tests/tailwind-scale.test.ts` | Scale converters — spaced Figma weight names, specific-over-broad weight precedence, exact-scale vs arbitrary-value fallback for dimensions/radii/font sizes. |
 | `tests/border.test.ts` | Border → Tailwind: uniform, single-side, arbitrary widths, styles. |
 | `tests/color-utils.test.ts` | RGB→HEX/RGBA/HSL, fills/strokes extraction, gradient stops. |
+| `tests/code-highlighter.test.ts` | Renders the real `CodeHighlighter` via `renderToStaticMarkup` — line numbering, property/value tokenization, hex swatches, comment lines, Tailwind token families. |
 | `tests/manifest.test.ts` | Manifest schema — required fields, `relaunchButtons[].name`/`command` are strings, `main`/`ui` point at `dist/`. |
 
 ### Known gaps
-- **No React component tests.** No component is exercised; `CodeHighlighter`, `CodeViewer`, `BorderStyle`, `BoxModel`, and `App` have zero automated coverage. Verify UI changes by reloading in Figma and inspecting visually.
+- **No React interaction tests.** Components are covered only by static markup rendering (`code-highlighter.test.ts`). Event handlers, effect lifecycles, and the `App` message listener are untested — verify those by reloading in Figma.
 - **No sandbox integration tests.** `code.ts` message routing and the sequence guard are untested.
-- **`tests/code-highlighter.test.ts` imports nothing from `src/`.** It re-implements tokenization over string literals and asserts on `Array`/`String` built-ins — it provides no real coverage and should not be treated as a safety net for `CodeHighlighter.tsx`.
 - There is **no linter and no formatter configured**. There is no `lint` script. Match surrounding style by hand: 2-space indent, single quotes, semicolons, trailing commas, ~100-column soft wrap.

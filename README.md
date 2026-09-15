@@ -139,30 +139,35 @@ npm install
 
 ```
 figma-dev-mod/
-├── dist/                          # Compiled artifacts loaded by Figma
+├── dist/                          # Compiled artifacts loaded by Figma (gitignored)
 │   ├── code.js                    # Backend sandbox entry point
 │   └── index.html                 # Inlined UI bundle
 ├── docs/                          # Project documentation
 │   ├── installation-guide.md      # Detailed end-user installation & usage
-│   └── brainstorm-summary-...     # Design rationale and feature roadmap
+│   ├── brainstorm-summary-...     # Design rationale and feature roadmap
+│   └── journals/                  # Per-session engineering log & decisions
+├── plans/                         # Execution plans (plan.md + phase-0N-*.md)
 ├── src/
-│   ├── code/                      # Figma sandbox thread
+│   ├── code/                      # Figma sandbox thread (no DOM access)
 │   │   ├── code.ts                # Main plugin lifecycle & message router
 │   │   ├── color-utils.ts         # HEX, RGB, HSL conversions
-│   │   └── extractors.ts          # Box model, fills, typography extractor
+│   │   └── extractors.ts          # Box model, fills, typography & border extractor
 │   ├── ui/                        # Iframe UI thread (React)
 │   │   ├── components/            # UI components
+│   │   │   ├── BorderStyle.tsx    # Border style summary + live preview
 │   │   │   ├── BoxModel.tsx       # Visual box model diagram
+│   │   │   ├── CodeHighlighter.tsx # CSS & Tailwind syntax highlighting
 │   │   │   ├── CodeViewer.tsx     # Tailwind & CSS code tab panels
 │   │   │   ├── ColorPalette.tsx   # Color swatches with format toggles
 │   │   │   ├── EmptyState.tsx     # Placeholder when no node is selected
-│   │   │   ├── Header.tsx         # Layer name, type, and dimensions
+│   │   │   ├── Header.tsx         # Layer name, type, dimensions & shortcuts
 │   │   │   ├── QuickExport.tsx    # SVG & PNG export buttons
 │   │   │   └── Toast.tsx          # Copy feedback toasts
 │   │   ├── hooks/                 # Custom React hooks
 │   │   │   ├── useClipboard.ts    # Copy helper with toast trigger
 │   │   │   └── useFigmaTheme.ts   # Dark/light theme observer
 │   │   ├── App.tsx                # Main UI container
+│   │   ├── index.html             # Vite HTML entry
 │   │   ├── main.tsx               # React DOM root entry
 │   │   └── styles.css             # Tailwind base styles
 │   ├── types/
@@ -170,11 +175,15 @@ figma-dev-mod/
 │   └── utils/
 │       ├── tailwind-scale.ts      # Spacing, radius & font size mappings
 │       └── tailwind-transpiler.ts # CSS-to-Tailwind utility class generator
+├── tests/                         # Vitest unit tests
+├── AGENTS.md                      # Contributor & AI-assistant guidelines
 ├── manifest.json                  # Figma plugin configuration
 ├── package.json                   # Scripts and dependencies
+├── postcss.config.js              # PostCSS (Tailwind + autoprefixer)
 ├── tailwind.config.js             # Tailwind CSS configuration
 ├── tsconfig.json                  # TypeScript compiler options
-└── vite.config.ts                 # Vite bundler config with singlefile plugin
+├── vite.config.ts                 # Vite bundler config with singlefile plugin
+└── vitest.config.ts               # Vitest test runner configuration
 ```
 
 ---
