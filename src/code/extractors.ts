@@ -1,5 +1,6 @@
 import { BoxModelData, NodeInspectionData, TypographyData, BorderData, ShadowData } from '../types/messages';
 import { extractColorsFromNode, rgbToHex } from './color-utils';
+import { resolveVideoFrame } from './video-frame';
 
 export async function extractNodeData(node: SceneNode): Promise<NodeInspectionData> {
   const width = Math.round(('width' in node ? node.width : 0) * 100) / 100;
@@ -173,6 +174,13 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
       ? { absolute: true }
       : undefined;
 
+  // Figma only encodes video for a top-level frame, so resolve it here and let the UI name
+  // the frame it would actually export -- which is often not the selected node.
+  const resolvedFrame = resolveVideoFrame(node);
+  const topLevelFrame = resolvedFrame
+    ? { id: resolvedFrame.id, name: resolvedFrame.name }
+    : undefined;
+
   const colors = extractColorsFromNode(node);
   let border: BorderData | undefined;
   if ('strokes' in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
@@ -280,5 +288,6 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
     shadows: shadows.length > 0 ? shadows : undefined,
     sizing,
     position,
+    topLevelFrame,
   };
 }

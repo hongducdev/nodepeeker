@@ -66,6 +66,162 @@ beforeEach(() => {
   selection.push(node());
 });
 
+describe('sandbox video export', () => {
+  const frame = () => {
+    const f = {
+      id: '9:9',
+      name: 'Loading / Loop',
+      type: 'FRAME',
+      // A frame placed directly on a page: the only thing video export accepts.
+      parent: { type: 'PAGE' },
+      exportAsync,
+      getTopLevelFrame: () => f,
+    };
+    return f;
+  };
+
+  it('encodes the resolved top-level frame as MP4 with the requested settings', async () => {
+    selection.length = 0;
+    selection.push(frame());
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'MP4', fps: 24, quality: 'MEDIUM', loopCount: 0, scale: 2 },
+    });
+
+    expect(exportAsync).toHaveBeenCalledWith({
+      format: 'MP4',
+      fps: 24,
+      quality: 'MEDIUM',
+      constraint: { type: 'SCALE', value: 2 },
+    });
+    const result = posted.find((m) => m.type === 'VIDEO_EXPORT_RESULT');
+    expect(result?.payload).toMatchObject({ format: 'MP4', name: 'Loading - Loop' });
+    expect(exportAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends a loop count for GIF, which has no quality preset', async () => {
+    selection.length = 0;
+    selection.push(frame());
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'GIF', fps: 15, quality: 'HIGH', loopCount: 3, scale: 1 },
+    });
+
+    expect(exportAsync).toHaveBeenCalledWith({
+      format: 'GIF',
+      fps: 15,
+      loopCount: 3,
+      constraint: { type: 'SCALE', value: 1 },
+    });
+    expect(posted[0].payload).toMatchObject({ format: 'GIF' });
+  });
+
+  it('clamps an fps the format does not accept instead of passing it to Figma', async () => {
+    selection.length = 0;
+    selection.push(frame());
+
+    // 60 is an MP4 rate; GIF accepts it neither at the type nor at the API level.
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'GIF', fps: 60, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+
+    expect(exportAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ format: 'GIF', fps: 30 })
+    );
+  });
+
+  it('clamps and passes through MP4 rates too, since both formats are guarded', async () => {
+    selection.length = 0;
+    selection.push(frame());
+
+    // 13 is not an MP4 rate -> snaps to 12; 60 is one -> reaches Figma untouched.
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'MP4', fps: 13, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+    expect(exportAsync).toHaveBeenLastCalledWith(
+      expect.objectContaining({ format: 'MP4', fps: 12 })
+    );
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'MP4', fps: 60, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+    expect(exportAsync).toHaveBeenLastCalledWith(
+      expect.objectContaining({ format: 'MP4', fps: 60 })
+    );
+  });
+
+  it('ships the encoded bytes as a Uint8Array, not a number array', async () => {
+    // The regression this transport change exists to prevent: a multi-megabyte video
+    // crossing as millions of JS numbers.
+    selection.length = 0;
+    selection.push(frame());
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'GIF', fps: 15, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+
+    const payload = posted[0].payload as { bytes: unknown; name: string };
+    expect(payload.bytes).toBeInstanceOf(Uint8Array);
+    expect(Array.from(payload.bytes as Uint8Array)).toEqual([1, 2, 3]);
+    expect(payload.name).toBe('Loading - Loop');
+  });
+
+  it('refuses when the selection has no enclosing top-level frame', async () => {
+    selection.length = 0;
+    selection.push({ ...node(), getTopLevelFrame: () => undefined });
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'MP4', fps: 30, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+
+    expect(posted).toHaveLength(1);
+    expect(posted[0]).toMatchObject({
+      type: 'EXPORT_ERROR',
+      error: expect.stringContaining('frame placed directly on the page'),
+    });
+    expect(exportAsync).not.toHaveBeenCalled();
+  });
+
+  it('names the encoded frame, not the selected layer, when encoding fails', async () => {
+    // The two differ whenever the selection is nested, which is the case the resolver
+    // exists for; naming the selection would send the user to the wrong layer.
+    const outer = frame();
+    const nested = {
+      ...node(),
+      id: '9:1',
+      name: 'Nested / Layer',
+      getTopLevelFrame: () => outer,
+    };
+    selection.length = 0;
+    selection.push(nested);
+    exportShouldFail = true;
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'MP4', fps: 30, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+
+    expect(posted[0]).toMatchObject({
+      type: 'EXPORT_ERROR',
+      error: expect.stringContaining('Loading / Loop'),
+    });
+    expect(posted[0]).toMatchObject({
+      error: expect.not.stringContaining('Nested / Layer'),
+    });
+    // The underlying reason must survive, or the user cannot act on the failure.
+    expect(posted[0]).toMatchObject({
+      error: expect.stringContaining('export unavailable'),
+    });
+  });
+});
+
 describe('sandbox file context', () => {
   it('posts the file key and name on init so the UI can build a deep link', async () => {
     figmaMock.fileKey = 'aXrGAc4tTcMFWklkcboC1l';
@@ -121,16 +277,18 @@ describe('sandbox export protocol', () => {
     }
   });
 
-  it('defaults PNG to a 2x scale and ships bytes as a plain array', async () => {
+  it('defaults PNG to a 2x scale and ships bytes as a Uint8Array', async () => {
     await send({ type: 'REQUEST_EXPORT', format: 'PNG', action: 'download' });
 
     expect(exportAsync).toHaveBeenCalledWith({
       format: 'PNG',
       constraint: { type: 'SCALE', value: 2 },
     });
-    const payload = posted[0].payload as { bytes: number[]; action: string };
-    expect(Array.isArray(payload.bytes)).toBe(true);
-    expect(payload.bytes).toEqual([1, 2, 3]);
+    const payload = posted[0].payload as { bytes: Uint8Array; action: string };
+    // A typed array, not number[]: a multi-megabyte video would otherwise cross the
+    // boundary as millions of individual JS numbers.
+    expect(payload.bytes).toBeInstanceOf(Uint8Array);
+    expect(Array.from(payload.bytes)).toEqual([1, 2, 3]);
     expect(payload.action).toBe('download');
   });
 

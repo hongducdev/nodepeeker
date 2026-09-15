@@ -1,6 +1,6 @@
 # NodePeeker
 
-> A fast, zero-subscription Figma plugin replacing paid Dev Mode for free accounts. Get instant Tailwind CSS classes, pure CSS declarations, an interactive visual box model, quick color copying, and 1-click asset exports.
+> A fast, zero-subscription Figma plugin replacing paid Dev Mode for free accounts. Get instant Tailwind CSS classes, pure CSS declarations, an interactive visual box model, quick color copying, 1-click asset exports, and MP4/GIF animation export.
 
 [![Figma Plugin API](https://img.shields.io/badge/Figma_Plugin_API-v1.0.0-1abc9c.svg)](https://www.figma.com/plugin-docs/)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://react.dev/)
@@ -33,6 +33,11 @@
 - **Copy SVG:** Copies raw, optimized SVG markup straight into your clipboard for direct JSX/HTML pasting.
 - **Save SVG:** One-click download of SVG vector assets without opening Figma's nested export drawer.
 - **Save PNG @2x:** Exports high-resolution raster image files instantly.
+
+### 🎬 Animation Export (MP4 / GIF)
+- **The Whole Top-Level Frame Is Encoded, Not the Selected Layer:** Figma's video export only accepts a frame placed directly on a page, so the panel **names the frame it will encode**. Selecting a keyframed layer inside a frame produces a video of the frame it lives in, not of that layer — and the file contains the entire frame's animation.
+- **Per-Format Options That Match the API:** **MP4** offers 12/24/30/60 fps plus a LOW / MEDIUM / HIGH quality preset; **GIF** offers 8/12/15/24/30 fps plus a loop count (`∞` for the API's `0`, which loops forever). Both take a standard export scale from 50 % to 400 %, and the fps choice is re-snapped to the new format's list when you switch.
+- **Refuses Rather Than Shipping an Empty File:** the section only appears when the selection has a frame directly on the page. A frame nested in a section, a layer with no enclosing frame, or a frame with nothing animated to encode is reported as an error instead of downloading a broken asset — and a failed encode names the frame it tried to encode.
 
 ### 🔗 Copyable Layer Link
 - **Deep Link to the Selected Layer:** A compact link bar sits directly under the header and shows the selected layer's canonical `https://www.figma.com/design/<key>/<file>?node-id=…` URL — the same link Figma's own **Copy link** produces. Click it to copy.

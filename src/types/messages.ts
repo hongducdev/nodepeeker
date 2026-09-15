@@ -75,6 +75,24 @@ export interface NodeInspectionData {
   sizing?: { hugHorizontal: boolean; hugVertical: boolean };
   /** Child of an auto-layout frame pinned with `layoutPositioning: 'ABSOLUTE'`. */
   position?: { absolute: boolean };
+  /** The frame video export would encode. Figma rejects video export on anything that is not
+   *  a top-level frame, so this is resolved with `getTopLevelFrame()` and may differ from the
+   *  selected node. Absent when the selection has no enclosing top-level frame. */
+  topLevelFrame?: { id: string; name: string };
+}
+
+export type VideoFormat = 'MP4' | 'GIF';
+export type VideoQuality = 'LOW' | 'MEDIUM' | 'HIGH';
+/** Must stay in sync with `SCALE_VALUES` in `src/utils/video-options.ts`. */
+export type VideoScale = 0.5 | 0.75 | 1 | 1.5 | 2 | 3 | 4;
+
+export interface VideoExportOptions {
+  format: VideoFormat;
+  fps: number;
+  quality: VideoQuality;
+  /** GIF only; 0 loops forever. */
+  loopCount: number;
+  scale: VideoScale;
 }
 
 export type SelectionState =
@@ -96,8 +114,9 @@ export type PluginToUIMessage =
       type: 'EXPORT_RESULT';
       payload:
         | { format: 'SVG'; content: string; name: string; nodeId: string; action: 'copy' | 'download' | 'view' }
-        | { format: 'PNG'; bytes: number[]; name: string; action: 'download' };
+        | { format: 'PNG'; bytes: Uint8Array; name: string; action: 'download' };
     }
+  | { type: 'VIDEO_EXPORT_RESULT'; payload: { format: VideoFormat; bytes: Uint8Array; name: string } }
   | { type: 'EXPORT_ERROR'; error: string };
 
 export type UIToPluginMessage =
@@ -107,4 +126,5 @@ export type UIToPluginMessage =
       scale?: number;
       action: 'copy' | 'download' | 'view';
     }
+  | { type: 'REQUEST_VIDEO_EXPORT'; options: VideoExportOptions }
   | { type: 'INIT_REQUEST' };

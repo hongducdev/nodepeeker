@@ -1,6 +1,8 @@
 import { UIToPluginMessage } from '../types/messages';
 import { extractNodeData } from './extractors';
 import { uint8ArrayToString } from './color-utils';
+import { clampFps } from '../utils/video-options';
+import { resolveVideoFrame } from './video-frame';
 
 figma.showUI(__html__, {
   width: 340,
@@ -123,7 +125,7 @@ figma.ui.onmessage = async (msg: UIToPluginMessage) => {
           type: 'EXPORT_RESULT',
           payload: {
             format: 'PNG',
-            bytes: Array.from(bytes),
+            bytes,
             name: safeName,
             action: 'download',
           },
@@ -136,6 +138,53 @@ figma.ui.onmessage = async (msg: UIToPluginMessage) => {
         error: message,
       });
     }
+  }
+  if (msg.type === 'REQUEST_VIDEO_EXPORT') {
+    // Re-resolve from the live selection rather than trusting anything the UI sent back.
+    const frame = resolveVideoFrame(figma.currentPage.selection[0]);
+
+    if (!frame) {
+      figma.ui.postMessage({
+        type: 'EXPORT_ERROR',
+        error: 'Video export needs a frame placed directly on the page. Nothing to encode here.',
+      });
+      return;
+    }
+
+    const { format, quality, loopCount, scale } = msg.options;
+    const constraint = { type: 'SCALE' as const, value: scale };
+    const safeName = (frame.name || 'animation').replace(/[/\\?%*:|"<>]/g, '-');
+
+    try {
+      const bytes =
+        format === 'GIF'
+          ? await frame.exportAsync({
+              format: 'GIF',
+              fps: clampFps('GIF', msg.options.fps),
+              loopCount,
+              constraint,
+            })
+          : await frame.exportAsync({
+              format: 'MP4',
+              fps: clampFps('MP4', msg.options.fps),
+              quality,
+              constraint,
+            });
+
+      figma.ui.postMessage({
+        type: 'VIDEO_EXPORT_RESULT',
+        payload: { format, bytes, name: safeName },
+      });
+    } catch (err: unknown) {
+      // Figma rejects when the frame has nothing animated to encode; say so plainly rather
+      // than surfacing a generic failure.
+      const detail = err instanceof Error ? err.message : String(err);
+      figma.ui.postMessage({
+        type: 'EXPORT_ERROR',
+        error: `Could not encode “${frame.name}”: ${detail}`,
+      });
+    }
+    return;
   }
 };
 

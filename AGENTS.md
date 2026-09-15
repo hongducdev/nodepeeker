@@ -2,12 +2,13 @@
 
 ## Project Overview
 
-**NodePeeker** is a Figma plugin that restores core developer hand-off features for free Figma accounts (replacing paid Dev Mode). It opens as a 340×580 floating iframe on the canvas and provides four features:
+**NodePeeker** is a Figma plugin that restores core developer hand-off features for free Figma accounts (replacing paid Dev Mode). It opens as a 340×580 floating iframe on the canvas and provides five features:
 
 1. **Code inspection** — Pure CSS (default tab) and auto-translated Tailwind CSS, with syntax highlighting.
 2. **Color copier** — HEX / RGB / HSL for fills and strokes, 1-click copy.
 3. **Visual box model** — bounds, padding, gap, corner radius, and border style.
 4. **1-click export** — copy raw SVG, download SVG, download PNG @2x.
+5. **Animation export** — MP4 / GIF of the selected layer's **top-level frame** (Figma encodes the whole frame, not the selected layer), with per-format fps, MP4 quality or GIF loop count, and a scale.
 
 The plugin is **strictly offline**: `manifest.json` declares `networkAccess.allowedDomains: ["none"]`. No CDN, no web fonts, no telemetry. Every asset (including Lucide icons) is bundled inline.
 
@@ -53,6 +54,8 @@ selectionchange ─► handleSelectionChange()          src/code/code.ts
 
 **Export flow (reverse direction):** `QuickExport` → `parent.postMessage({pluginMessage:{type:'REQUEST_EXPORT',...}})` → `code.ts` **re-reads `figma.currentPage.selection`** (it does not cache the node) → `exportAsync` → `EXPORT_RESULT`.
 
+**Video export flow (its own message pair).** `VideoExport` (`src/ui/components/VideoExport.tsx`) → `REQUEST_VIDEO_EXPORT {options}` → `code.ts` **re-resolves the frame from the live selection** with `resolveVideoFrame` (`src/code/video-frame.ts`), never trusting a node id sent back by the UI → `frame.exportAsync({format:'MP4'|'GIF', fps, constraint, …})` with `quality` for MP4 or `loopCount` for GIF → `VIDEO_EXPORT_RESULT {format, bytes: Uint8Array, name}`. The node Figma actually encodes is the frame the selection lives in, so it is **often not the selected layer** — a keyframe-bearing layer inside a frame exports that whole frame, not the layer. `SELECTION_CHANGE` therefore carries `topLevelFrame {id,name}`, and the UI labels the frame that will be encoded rather than the selection.
+
 **Link flow (one-shot, at startup).** `App.tsx` posts `INIT_REQUEST` on mount; `code.ts` answers with `FILE_CONTEXT {fileKey?, fileName}` and only then runs the first `handleSelectionChange()`. File identity is constant for the session, so this message is sent **once** and never rides along on `SELECTION_CHANGE`. `NodeLink` (`src/ui/components/NodeLink.tsx`) consumes it through `buildNodeUrl` (`src/utils/node-link.ts`) to render a copyable deep link. When no file key is available the builder returns `null` and the bar falls back to `toNodeIdParam(nodeId)` — the node id in **URL form** (`3844-702`). That is **not** the API form (`3844:702`) Figma's Plugin API expects, so the copy label and the note name the URL form explicitly rather than calling the value "the node ID".
 
 **SVG is fetched on demand, not with the selection.** `SELECTION_CHANGE` no longer carries `svg`; the payload stops at `NodeInspectionData`. Opening the SVG tab sends `REQUEST_EXPORT {format:'SVG', action:'view'}`, which is answered by `EXPORT_RESULT` carrying the markup **and the `nodeId` it belongs to**. `App.tsx` caches exactly one node's markup (`{nodeId, content}`) and **drops any response whose `nodeId` is not the current selection**, so navigating away mid-export cannot paint another layer's markup. A request marker (`svgRequestedForRef`) makes the fetch once per node and stays armed after `EXPORT_ERROR`, so a failed export is not retried in a loop.
@@ -62,7 +65,7 @@ selectionchange ─► handleSelectionChange()          src/code/code.ts
 - **Race guard is mandatory.** `code.ts` keeps a module-level `let selectionSequence = 0`. Each handler run captures `const seq = ++selectionSequence` *before* awaiting and re-checks `if (seq !== selectionSequence) return;` *after every await*. Without this, a slow `getCSSAsync()` from an earlier selection overwrites a newer one.
 - **Derive, don't store.** Tailwind classes are computed during render (`CodeViewer` calls `transpileToTailwind(data)`), never held in state.
 - **Extraction is async only because Figma is.** `getCSSAsync()` is the only promise in `extractors.ts`; everything else there is synchronous. Vector export no longer happens during extraction — it lives behind `REQUEST_EXPORT` in `code.ts`.
-- **Cross-boundary payloads are JSON-safe only.** `Uint8Array` cannot cross `postMessage`. PNG bytes travel as `Array.from(bytes)` → `number[]` and are rebuilt with `new Uint8Array(payload.bytes)`; SVG is decoded to a `string` first via `uint8ArrayToString`.
+- **Binary crosses `postMessage` as `Uint8Array`, via structured clone.** `figma.ui.postMessage` clones rather than serializing to JSON, so PNG and video payloads are posted as real `Uint8Array` objects and used directly. **Never `Array.from(bytes)`** — that expands a multi-MB encode into millions of JS numbers (an 8 MB video becomes an 8-million-element array). SVG is still decoded to a `string` first via `uint8ArrayToString`, because the code viewer renders it as text.
 
 ---
 
@@ -74,7 +77,7 @@ selectionchange ─► handleSelectionChange()          src/code/code.ts
 | `src/ui/` | **UI thread.** React root (`App.tsx`, `main.tsx`), `components/`, `hooks/`, Tailwind entry `styles.css`, Vite entry `index.html`. |
 | `src/utils/` | **Shared pure logic**, runs in the iframe. Tailwind scale tables and the transpiler. No Figma and no DOM dependency. |
 | `src/types/` | `messages.ts` — the wire contract imported by both threads. |
-| `tests/` | Vitest unit tests. Mirrors `src/code/` and `src/utils/` only. |
+| `tests/` | Vitest unit tests — `src/code/`, `src/utils/`, and statically rendered UI components. |
 | `dist/` | Build output. **Gitignored** — never edit by hand. |
 | `docs/` | `installation-guide.md` (user-facing), `brainstorm-summary-*.md` (decision record), `journals/` (per-session engineering log). |
 | `plans/` | `plan.md` + `phase-0N-*.md` execution plans with frontmatter and checklists. |
@@ -110,7 +113,7 @@ Figma Desktop → **Plugins → Development → Import plugin from manifest…**
 - Utility modules are kebab-case (`tailwind-transpiler.ts`, `tailwind-scale.ts`) or `*-utils.ts` (`color-utils.ts`).
 - Hooks are `useX.ts` exporting `useX()`.
 - Functions are camelCase verbs: `extractNodeData`, `transpileToTailwind`, `toTailwindDimension`, `uint8ArrayToString`, `downloadBlob`.
-- Message `type` discriminants are SCREAMING_SNAKE: `SELECTION_CHANGE`, `REQUEST_EXPORT`, `INIT_REQUEST`, `EXPORT_RESULT`, `EXPORT_ERROR`.
+- Message `type` discriminants are SCREAMING_SNAKE: `SELECTION_CHANGE`, `REQUEST_EXPORT`, `REQUEST_VIDEO_EXPORT`, `INIT_REQUEST`, `EXPORT_RESULT`, `VIDEO_EXPORT_RESULT`, `EXPORT_ERROR`.
 - Payload fields are `camelCase`; emitted CSS property keys are kebab-case (`css['border-top']`).
 
 ### TypeScript
@@ -172,6 +175,9 @@ catch { success = false; }
 - Clipboard is unreliable in the Figma iframe: try `navigator.clipboard` behind `window.isSecureContext`, then fall back to a hidden textarea + `document.execCommand('copy')`.
 - `React.StrictMode` double-invokes effects in dev — keep effect cleanups correct.
 - **`figma.fileKey` is doubly conditional.** It is readable only when `manifest.json` sets `enablePrivatePluginApi: true` **and** the plugin is private/local; a **publicly published plugin never receives a key**, regardless of the manifest. Any link feature must therefore degrade rather than assume a key exists — `code.ts` reads it behind a `typeof` guard and `buildNodeUrl` returns `null` when it is absent. Removing the manifest flag silently downgrades every link to the node-id fallback.
+- **Video export (`MP4` / `GIF` / `WEBM`) accepts one node shape and nothing else: a frame placed directly on a page, with animated content.** The entire frame is encoded across the animation's duration — a nested animated frame, or an individual layer that merely has keyframes, **rejects**. A frame inside a **Section** is the top-most frame yet is *not* placed directly on a page, so `resolveVideoFrame` returns `undefined` for it too. Resolve the encodable frame in `src/code/video-frame.ts` (`resolveVideoFrame`), never by hand at the call site.
+- **`getTopLevelFrame()` promises less than it looks like.** Its contract is "the top-most frame **that contains** this node … `undefined` if the node is not inside a frame" — self-return for a node that already *is* a top-level frame is **not** stated, and such a frame is by definition not *inside* a frame. The most common workflow (select a frame, export it) therefore cannot lean on it; `resolveVideoFrame` handles that case explicitly and only consults `getTopLevelFrame()` for nodes nested in something. That call **also throws outside Figma Design** (FigJam, Slides), so it is wrapped in a `try`.
+- **`figma.ui.postMessage` carries `Uint8Array` through structured clone.** Binary payloads (PNG, `VIDEO_EXPORT_RESULT`) are posted as `Uint8Array` and rebuilt into a `Blob` on the UI side — `new Blob([bytes], {type})`. The UI still checks `bytes instanceof Uint8Array` before downloading and `alert`s otherwise, because a regression to `Array.from(bytes)` would ship a `number[]` that produces a plausible-looking but corrupt file instead of failing loudly.
 
 ---
 
@@ -246,9 +252,12 @@ npm test && npm run typecheck && npm run build
 | `tests/node-link-component.test.ts` | Renders the real `NodeLink` via `renderToStaticMarkup` (no jsdom). The deep link when a file key is present, the **URL-form** fallback when it is not, and that the fallback is labelled "node ID in URL form" with the API form named in the note — the two forms are genuinely different strings. |
 | `tests/manifest.test.ts` | Manifest schema — required fields, `relaunchButtons[].name`/`command` are strings, `main`/`ui` point at `dist/`, and `enablePrivatePluginApi` is pinned to `true` (the sole prerequisite for a readable `figma.fileKey`; the test asserts the length of `relaunchButtons` so the schema check cannot go vacuous). |
 | `tests/output-fidelity.test.ts` | Extraction vs. transpiler fidelity. Extraction: no vector export during `extractNodeData`; `opacity` reported independently of shadows and omitted at `1`; real shadow geometry/colour with inner-vs-drop and hidden/non-shadow effects skipped; Hug sizing mapped onto the physical axis; `ABSOLUTE` positioning flagged. Transpiler: `leading-*`/`tracking-*`, `w-fit`/`h-fit`/`self-stretch`, `absolute` + `left-[…]`/`top-[…]` offsets, real `shadow-[…]` and `opacity-*`, and **no** shadow class on a shadowless node. |
-| `tests/sandbox-protocol.test.ts` | The `REQUEST_EXPORT` router in `src/code/code.ts`. Stubs the `figma` global and `__html__`, then imports `code.ts` **dynamically** because the module reads those globals while its body evaluates (a static import would be hoisted ahead of the stubs and throw). Asserts SVG `view`/`copy`/`download` action passthrough, the echoed `nodeId`, PNG `2x` default and explicit scale, file-name sanitisation, `EXPORT_ERROR` on an empty selection, and `EXPORT_ERROR` when the export itself throws. |
+| `tests/sandbox-protocol.test.ts` | The message router in `src/code/code.ts`. Stubs the `figma` global and `__html__`, then imports `code.ts` **dynamically** because the module reads those globals while its body evaluates (a static import would be hoisted ahead of the stubs and throw). `REQUEST_EXPORT`: SVG `view`/`copy`/`download` action passthrough, the echoed `nodeId`, PNG `2x` default and explicit scale, file-name sanitisation, `EXPORT_ERROR` on an empty selection, and `EXPORT_ERROR` when the export itself throws. `REQUEST_VIDEO_EXPORT`: the resolved top-level frame (not the selection) is encoded, MP4 gets settings + `quality` while GIF gets `loopCount`, an out-of-set fps is clamped rather than forwarded, bytes ship as a `Uint8Array`, a selection with no enclosing frame is refused, and an encode failure names the **encoded frame**. |
+| `tests/video-options.test.ts` | `src/utils/video-options.ts` — the pure option tables. The per-format fps sets stay distinct (Figma rejects an out-of-set rate), the documented defaults (`MP4` 30 / `GIF` 15) seed the panel, quality presets exist only for MP4, the scale list matches the API, and each format is paired with a matching MIME type + extension (a mismatch ships a corrupt file with a plausible name). `clampFps`: pass-through, nearest-allowed snapping (60 → 30 for GIF), "always returns something the format accepts" for any input, and the default fallback for non-finite input. |
+| `tests/video-frame.test.ts` | `resolveVideoFrame` (`src/code/video-frame.ts`) — the resolver that decides what Figma will encode. A frame placed directly on a page is accepted **without** relying on `getTopLevelFrame()` self-return (the mocked call returns `undefined` for it, mirroring the docs); a nested layer walks up to its enclosing top-level frame; a frame whose parent is a **Section** is rejected (top-most, but not placed directly on a page); a node with no enclosing frame and an empty selection are rejected; and a `getTopLevelFrame` that throws (FigJam/Slides) returns `undefined` instead of escaping. |
+| `tests/video-export-component.test.ts` | Renders the real `VideoExport` via `renderToStaticMarkup` (no jsdom; this covers the initial MP4 render plus the disabled state without testing-library, which is not installed). Names the frame that will be encoded — not the selection — and says the whole frame is encoded, opens on MP4 with a specific quality control and **no** loop control (the interactive GIF switch itself is not exercised), offers only the fps rates MP4 accepts (never `8`), labels the action `Download MP4` for the current format, and disables it with an `Encoding…` label while in flight. |
 
 ### Known gaps
-- **No React interaction tests.** Components are covered only by static markup rendering (`code-highlighter.test.ts`). Event handlers, effect lifecycles, and the `App` message listener are untested — verify those by reloading in Figma.
-- **Sandbox coverage is partial.** `sandbox-protocol.test.ts` covers the `REQUEST_EXPORT` router, but the `selectionchange` path and the sequence guard are still untested.
+- **No React interaction tests.** Components are covered only by static markup rendering (`code-highlighter.test.ts`, `code-viewer.test.ts`, `node-link-component.test.ts`, `video-export-component.test.ts`). Event handlers, effect lifecycles, and the `App` message listener are untested — verify those by reloading in Figma. The `VideoExport` format switch is the concrete gap: only the MP4 render is asserted, so the GIF branch (loop control) is proven by hand in the browser, not by a test.
+- **Sandbox coverage is partial.** `sandbox-protocol.test.ts` covers the `REQUEST_EXPORT` and `REQUEST_VIDEO_EXPORT` routers, but the `selectionchange` path and the sequence guard are still untested.
 - There is **no linter and no formatter configured**. There is no `lint` script. Match surrounding style by hand: 2-space indent, single quotes, semicolons, trailing commas, ~100-column soft wrap.

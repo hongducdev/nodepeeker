@@ -1,6 +1,6 @@
 # NodePeeker - Installation & Usage Guide
 
-A lightweight, zero-subscription Figma plugin replacing Dev Mode for free accounts with 1-click Pure CSS & Tailwind inspection with syntax highlighting, color copying (HEX, RGB, HSL), visual box model, keyboard shortcuts, and 1-click asset export.
+A lightweight, zero-subscription Figma plugin replacing Dev Mode for free accounts with 1-click Pure CSS & Tailwind inspection with syntax highlighting, color copying (HEX, RGB, HSL), visual box model, keyboard shortcuts, 1-click asset export, and MP4/GIF animation export.
 
 ---
 
@@ -70,6 +70,9 @@ Select any layer on your canvas (frame, button, text, component instance, vector
 - **Box Model:** View outer dimensions (width × height), corner radii, 4-sided padding (top, right, bottom, left), and auto-layout gap. Click any measurement to copy its value.
 - **Colors:** View all detected fills and strokes. Toggle between **HEX**, **RGB**, and **HSL** formats. Click any color card to copy the code directly to your clipboard.
 - **1-Click Export:** Click **Copy SVG**, **SVG File**, or **PNG @2x** to immediately export clean assets without opening Figma's nested export drawer.
+- **Animation Export (MP4 / GIF):** Click **Download MP4** or **Download GIF** to encode the selection as an animation — useful for demos, loading states, and handing motion work to developers. Two things decide whether it works:
+  - **It needs a frame placed directly on the page, with animated content.** Figma encodes that whole frame — **the entire frame, not the layer you selected** — so the panel tells you which frame it will encode before you click. Selecting a keyframed layer inside a frame exports the frame it lives in; a frame nested inside a **Section**, a layer that sits outside any frame, or a frame with nothing animated is refused with an error instead of downloading a broken asset (and when an encode does fail, the error names the frame it tried to encode).
+  - **The fps choices differ between the formats**, because Figma accepts a different set for each: **MP4** offers 12, 24, 30, and 60 fps (default 30) plus a quality preset, while **GIF** offers 8, 12, 15, 24, and 30 fps (default 15) plus a loop count, where `∞` is the API's `0` and loops forever. Both formats take a standard export scale from 50 % to 400 %.
 - **Copyable Layer Link:** A compact link bar sits directly under the header and shows a deep link to the selected layer — the same URL Figma's own **Copy link** produces. Click it to copy the link.
 
   **A full link requires the plugin to keep `enablePrivatePluginApi: true` in `manifest.json` and to remain private.** Publishing the plugin publicly **permanently disables `figma.fileKey`**, and a public plugin never receives one regardless of the manifest. Before that — or in an unsaved draft — the bar degrades instead of breaking: it shows and copies the node id in **URL form** (`3844-702`) and names the API form (`3844:702`) that Figma's Plugin API expects, so you can still paste a `?node-id=` value or resolve the layer.

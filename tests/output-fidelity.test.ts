@@ -132,6 +132,31 @@ describe('extraction: sizing and position', () => {
   });
 });
 
+describe('extraction: video frame', () => {
+  it('reports the enclosing page-level frame that video export would encode', async () => {
+    const page = { type: 'PAGE' };
+    const outer = {
+      id: '9:9',
+      name: 'Loading / Loop',
+      type: 'FRAME',
+      parent: page,
+    } as unknown as FrameNode;
+
+    const data = await extractNodeData(
+      asNode({ type: 'VECTOR', parent: outer, getTopLevelFrame: () => outer })
+    );
+
+    expect(data.topLevelFrame).toEqual({ id: '9:9', name: 'Loading / Loop' });
+  });
+
+  it('omits the frame when the selection cannot be encoded', async () => {
+    const data = await extractNodeData(
+      asNode({ parent: { type: 'PAGE' }, getTopLevelFrame: () => undefined })
+    );
+    expect(data.topLevelFrame).toBeUndefined();
+  });
+});
+
 describe('transpiler: output fidelity', () => {
   it('emits leading and tracking for text', () => {
     const out = transpileToTailwind(
