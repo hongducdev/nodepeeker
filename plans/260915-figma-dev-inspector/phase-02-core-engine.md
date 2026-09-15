@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Core-Engine"
-status: pending
+status: completed
 priority: P1
 effort: "2h"
 dependencies: ["phase-01-setup"]
@@ -62,10 +62,10 @@ Figma Selection Change
 5. Handle edge cases: when 0 nodes or multiple nodes are selected, emit appropriate state messages (`NO_SELECTION`, `MULTI_SELECTION`).
 
 ## Success Criteria
-- [ ] Selecting any Figma layer updates UI with correct node name, type, and dimensions.
-- [ ] CSS returned from `getCSSAsync` matches values seen in Figma.
-- [ ] Fills with opacity, linear gradients, and stroke colors correctly produce valid HEX/RGBA/HSL.
-- [ ] `exportAsync` successfully sends SVG text and PNG byte arrays to UI.
+- [x] Selecting any Figma layer updates UI with correct node name, type, and dimensions.
+- [x] CSS returned from `getCSSAsync` matches values seen in Figma.
+- [x] Fills with opacity, linear gradients, and stroke colors correctly produce valid HEX/RGBA/HSL.
+- [x] `exportAsync` successfully sends SVG text and PNG byte arrays to UI.
 
 ## Risk Assessment
 - *Risk:* `getCSSAsync()` throws on nodes with unsupported styles or detached components.

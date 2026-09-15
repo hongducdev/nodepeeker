@@ -1,0 +1,35 @@
+{
+  "name": "figma-dev-inspector",
+  "version": "1.0.0",
+  "description": "Figma Dev Inspector Plugin - CSS & Tailwind inspection, box model, color copier, and 1-click export for free Figma accounts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:ui": "vite",
+    "watch:code": "esbuild src/code/code.ts --bundle --outfile=dist/code.js --target=es2020 --watch",
+    "build:code": "esbuild src/code/code.ts --bundle --outfile=dist/code.js --target=es2020",
+    "build:ui": "vite build",
+    "build": "npm run build:code && npm run build:ui",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lucide-react": "^0.441.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.100.0",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "esbuild": "^0.23.1",
+    "postcss": "^8.4.45",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.3",
+    "vite-plugin-singlefile": "^2.0.2",
+    "vitest": "^2.0.5"
+  }
+}

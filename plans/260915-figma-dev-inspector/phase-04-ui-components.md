@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "UI-Components"
-status: pending
+status: completed
 priority: P1
 effort: "3h"
 dependencies: ["phase-02-core-engine", "phase-03-tailwind-transpiler"]
@@ -91,11 +91,11 @@ Build the complete user interface using React 18, Tailwind CSS, and Lucide icons
    - Render inspector panels with clean accordion or section dividers.
 
 ## Success Criteria
-- [ ] UI renders cleanly inside 340px width without horizontal scrollbars.
-- [ ] Clicking any color row copies the formatted color string to clipboard and shows toast.
-- [ ] Clicking "Copy SVG" copies valid SVG code that pastes directly into text editors.
-- [ ] Clicking "Download PNG" triggers browser download of the selected node image.
-- [ ] Dark and light Figma modes render with readable contrast.
+- [x] UI renders cleanly inside 340px width without horizontal scrollbars.
+- [x] Clicking any color row copies the formatted color string to clipboard and shows toast.
+- [x] Clicking "Copy SVG" copies valid SVG code that pastes directly into text editors.
+- [x] Clicking "Download PNG" triggers browser download of the selected node image.
+- [x] Dark and light Figma modes render with readable contrast.
 
 ## Risk Assessment
 - *Risk:* Clipboard write fails inside sandboxed iframe due to browser security restrictions.

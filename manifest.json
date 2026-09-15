@@ -1,0 +1,11 @@
+{
+  "name": "Dev Inspector (CSS & Tailwind)",
+  "id": "figma-dev-inspector",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/index.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
+}

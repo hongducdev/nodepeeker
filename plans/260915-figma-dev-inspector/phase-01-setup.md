@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Setup"
-status: pending
+status: completed
 priority: P1
 effort: "1h"
 dependencies: []
@@ -60,9 +60,9 @@ Two compilation targets:
 5. Smoke test build command `npm run build` to confirm `dist/code.js` and `dist/index.html` exist without syntax errors.
 
 ## Success Criteria
-- [ ] `npm run build` completes with 0 errors.
-- [ ] `dist/index.html` is completely self-contained with no external CSS/JS script tags.
-- [ ] `manifest.json` is recognized and valid when imported into Figma Desktop.
+- [x] `npm run build` completes with 0 errors.
+- [x] `dist/index.html` is completely self-contained with no external CSS/JS script tags.
+- [x] `manifest.json` is recognized and valid when imported into Figma Desktop.
 
 ## Risk Assessment
 - *Risk:* Figma sandbox does not support modern DOM APIs (e.g. `document`, `window`).
