@@ -194,6 +194,8 @@ catch { success = false; }
 - **esbuild has no config file** — all flags are inline in `package.json`. It never reads `tsconfig.json`, so `tsc` is the type authority and esbuild is the transpiler.
 - **Both bundlers target `es2020`** (Figma's QuickJS engine).
 - **`vite-plugin-singlefile` is required**, not optional: `manifest.json` names exactly one HTML file and the iframe cannot resolve sibling asset URLs. `assetsInlineLimit` and `chunkSizeWarningLimit` are set to `100000000` to force full inlining.
+- **Vite is pinned to `^7` on purpose — do not bump it to 8 without also bumping `@vitejs/plugin-react`.** `@vitejs/plugin-react@4.7.0` peer-requires `vite ^4.2 || ^5 || ^6 || ^7`, so raising Vite to 8 makes `npm install` unresolvable (`ERESOLVE`). `@vitejs/plugin-react@6` supports Vite 8 but pulls in three additional peers (`oxc-transform-react`, `@rolldown/plugin-babel`, `babel-plugin-react-compiler`). Vite 7 is also the floor that clears the path-traversal advisory affecting `vite <=6.4.2`. Verify with `npm audit` and a clean `npm ci` after any dependency bump.
+- **After changing dependencies, run `npm ci && npm audit && npm run typecheck && npm test && npm run build`.** Peer conflicts surface at install time, not at build time.
 - **Never add a network dependency.** No CDN imports, no web fonts, no external images. Runtime dependencies (`react`, `react-dom`, `lucide-react`) are inlined into the bundles.
 - **Never edit `dist/`** — gitignored and regenerated. `node_modules/` and `dist/` are the only ignored paths.
 - **`typeRoots` overrides the default array.** `figma` typings resolve only because `./node_modules/@figma` is listed. Never drop either entry.
