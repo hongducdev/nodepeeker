@@ -6,7 +6,7 @@
   "ui": "dist/index.html",
   "editorType": ["figma"],
   "relaunchButtons": [
-    { "command": "open", "text": "Inspect CSS & Tailwind", "multipleSelection": true }
+    { "command": "open", "name": "Inspect CSS & Tailwind", "multipleSelection": true }
   ],
   "networkAccess": {
     "allowedDomains": ["none"]
