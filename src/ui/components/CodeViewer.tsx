@@ -3,6 +3,7 @@ import { NodeInspectionData } from '../../types/messages';
 import { transpileToTailwind } from '../../utils/tailwind-transpiler';
 import { Code2, Copy, Check } from 'lucide-react';
 import { CodeHighlighter } from './CodeHighlighter';
+import { SvgPreview } from './SvgPreview';
 
 interface CodeViewerProps {
   data: NodeInspectionData;
@@ -155,6 +156,10 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
           )}
         </button>
       </div>
+
+      {/* The rendering sits above the markup it was produced from: on the SVG tab most of the
+          code box is one enormous `<path d=…>` line, so the visual answer goes first. */}
+      {tab === 'svg' && svg ? <SvgPreview markup={svg} /> : null}
 
       <div className="relative rounded-md bg-crust text-text p-2.5 overflow-x-auto max-h-56 scrollbar-thin border border-surface0">
         {tab === 'svg' && isSvgLoading && !svg ? (

@@ -70,6 +70,19 @@ describe('CodeViewer', () => {
     expect(decode(html)).toContain("Shortcut: Press '3' or 'S'");
   });
 
+  it('keeps the SVG preview off the non-SVG tabs', () => {
+    // The gate is `tab === 'svg' && svg` in CodeViewer. The assertion above cannot see it
+    // failing: `textOf` strips tags, so injected artwork would vanish from its comparison.
+    // Assert on the element the preview would inject -- NOT on `viewBox`, which the tab bar's
+    // own lucide icon already renders as an attribute.
+    const html = render(
+      baseData(),
+      '<svg width="4" height="4" viewBox="0 0 4 4" xmlns="http://www.w3.org/2000/svg"><circle cx="2" cy="2" r="2" fill="#1e66f5"/></svg>'
+    );
+    expect(html).not.toContain('<circle cx="2"');
+    expect(html).not.toContain('>Preview<');
+  });
+
   it('merges border declarations into the CSS tab', () => {
     const html = render(
       baseData({

@@ -99,3 +99,30 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--ctp-overlay0) / 0.8);
 }
+
+/*
+ * Board behind the SVG tab preview. Exported artwork is usually transparent, and it can be
+ * pure white (invisible on Latte's near-white `base`) or near-black (invisible on Mocha's
+ * `crust`), so the board is a mid-grey two-tone in BOTH themes: transparency reads as a
+ * checkerboard, and either extreme of artwork stays visible.
+ */
+.svg-preview-board {
+  background-color: rgb(var(--ctp-surface1));
+  background-image:
+    linear-gradient(45deg, rgb(var(--ctp-surface2) / 0.8) 25%, transparent 25%, transparent 75%, rgb(var(--ctp-surface2) / 0.8) 75%),
+    linear-gradient(45deg, rgb(var(--ctp-surface2) / 0.8) 25%, transparent 25%, transparent 75%, rgb(var(--ctp-surface2) / 0.8) 75%);
+  background-position: 0 0, 6px 6px;
+  background-size: 12px 12px;
+}
+
+/*
+ * Fit the injected export inside the board without ever scaling it up. `width`/`height: auto`
+ * keeps Figma's intrinsic size for a small layer; the two `max-*` caps shrink a large one along
+ * its aspect ratio, and `100%` resolves against the board's definite height, not the artwork.
+ */
+.svg-preview-board > svg {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+}

@@ -200,7 +200,7 @@ catch { success = false; }
 | `src/utils/tailwind-transpiler.ts` | `transpileToTailwind(data)` — pure `NodeInspectionData` → class string. Ordering buckets: layout → sizing → spacing → typography → visuals. |
 | `src/utils/tailwind-scale.ts` | Scale tables + `toTailwind*` converters. |
 | `src/ui/App.tsx` | **UI entry point.** Message listener, `downloadBlob`, component composition. |
-| `src/ui/components/CodeViewer.tsx` | Tab switching, `formatCss()` merge fallback, in-plugin shortcuts. |
+| `src/ui/components/CodeViewer.tsx` | Tab switching, `formatCss()` merge fallback, in-plugin shortcuts, and the SVG tab's preview board (`SvgPreview`) above the code box — the same lazily fetched markup, injected as elements. |
 | `manifest.json` | Figma manifest. `main` → `dist/code.js`, `ui` → `dist/index.html`. |
 | `vite.config.ts` | `root: src/ui`, `emptyOutDir: false`, `viteSingleFile()`. |
 | `tsconfig.json` | Single config covering **both** `src/code` and `src/ui`. |
@@ -255,6 +255,7 @@ npm test && npm run typecheck && npm run build
 | `tests/border.test.ts` | Border → Tailwind: uniform, single-side, arbitrary widths, styles. |
 | `tests/color-utils.test.ts` | RGB→HEX/RGBA/HSL, fills/strokes extraction, gradient stops. |
 | `tests/code-viewer.test.ts` | Renders the real `CodeViewer` via `renderToStaticMarkup` — CSS/Tailwind/SVG tabs exist, CSS stays the default, the `3`/`S` SVG shortcut hint, and CSS border merging. |
+| `tests/svg-preview.test.ts` | Renders the real `SvgPreview` via `renderToStaticMarkup` — the exported markup reaches the DOM **verbatim as elements** (the whole markup string is present, and no `&lt;` escape appears at all, so a regression to printing the markup as text fails), the `Preview` label is rendered, and empty or whitespace-only markup renders nothing. |
 | `tests/code-highlighter.test.ts` | Renders the real `CodeHighlighter` via `renderToStaticMarkup` — line numbering, property/value tokenization, hex swatches, comment lines, Tailwind token families, SVG element/attribute/value tokenization. |
 | `tests/node-link.test.ts` | `src/utils/node-link.ts` — the pure URL builder. Separator conversion (`1:2` → `1-2`, and *every* separator, not just the first); `null` when the file key is missing or empty; slug sanitisation of spaces, `/`, `#`, `&`; blank/whitespace-only names dropping the path segment; leading and trailing separators collapsing (`Design /`, `/Design`, `-`). |
 | `tests/node-link-component.test.ts` | Renders the real `NodeLink` via `renderToStaticMarkup` (no jsdom). The deep link when a file key is present, the **URL-form** fallback when it is not, and that the fallback is labelled "node ID in URL form" with the API form named in the note — the two forms are genuinely different strings. |
