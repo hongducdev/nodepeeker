@@ -1,11 +1,9 @@
 import React from 'react';
-import { Eye, Copy, Check } from 'lucide-react';
+import { Eye } from 'lucide-react';
 
 interface SvgPreviewProps {
   /** The layer's exported markup, as fetched by the UI thread on demand. */
   markup: string;
-  onCopy?: (val: string, label: string) => void;
-  isCopied?: boolean;
 }
 
 /**
@@ -26,7 +24,7 @@ interface SvgPreviewProps {
  *
  * The fit-and-scale rules live in `styles.css` (`.svg-preview-board`).
  */
-export const SvgPreview: React.FC<SvgPreviewProps> = ({ markup, onCopy, isCopied }) => {
+export const SvgPreview: React.FC<SvgPreviewProps> = ({ markup }) => {
   // Nothing exported yet (or the export failed) -- the code box below already says so, and an
   // empty board would only flash a box that is about to be replaced.
   if (!markup.trim()) {
@@ -35,47 +33,14 @@ export const SvgPreview: React.FC<SvgPreviewProps> = ({ markup, onCopy, isCopied
 
   return (
     <div className="mb-2">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1 text-[11px] font-medium text-overlay1">
-          <Eye size={12} />
-          <span>Preview</span>
-        </div>
-        {onCopy && (
-          <button
-            onClick={() => onCopy(markup, 'SVG markup')}
-            className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded bg-surface0 hover:bg-surface1 text-subtext1 hover:text-text transition border border-surface1/60"
-            title="Copy raw SVG markup to clipboard"
-          >
-            {isCopied ? (
-              <>
-                <Check size={11} className="text-green" />
-                <span className="text-green">Copied SVG</span>
-              </>
-            ) : (
-              <>
-                <Copy size={11} />
-                <span>Copy SVG</span>
-              </>
-            )}
-          </button>
-        )}
+      <div className="flex items-center gap-1 text-[11px] font-medium text-overlay1 mb-2">
+        <Eye size={12} />
+        <span>Preview</span>
       </div>
       <div
-        className="relative group cursor-pointer"
-        onClick={() => onCopy?.(markup, 'SVG markup')}
-        title="Click to copy SVG"
-      >
-        <div
-          className="svg-preview-board h-40 rounded-md border border-surface0 p-2 flex items-center justify-center overflow-hidden"
-          dangerouslySetInnerHTML={{ __html: markup }}
-        />
-        {onCopy && (
-          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-base/80 backdrop-blur-xs text-subtext1 px-1.5 py-0.5 rounded text-[9px] font-mono border border-surface1 flex items-center gap-1 pointer-events-none">
-            <Copy size={9} />
-            <span>Click to copy</span>
-          </div>
-        )}
-      </div>
+        className="svg-preview-board h-40 rounded-md border border-surface0 p-2 flex items-center justify-center overflow-hidden"
+        dangerouslySetInnerHTML={{ __html: markup }}
+      />
     </div>
   );
 };
