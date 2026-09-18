@@ -25,6 +25,21 @@ describe('SvgPreview', () => {
     expect(render(MARKUP)).toContain('>Preview<');
   });
 
+  it('renders a Copy SVG button when onCopy is provided', () => {
+    const html = renderToStaticMarkup(
+      createElement(SvgPreview, { markup: MARKUP, onCopy: () => {}, isCopied: false })
+    );
+    expect(html).toContain('Copy SVG');
+    expect(html).toContain('Click to copy');
+  });
+
+  it('shows Copied SVG label when isCopied is true', () => {
+    const html = renderToStaticMarkup(
+      createElement(SvgPreview, { markup: MARKUP, onCopy: () => {}, isCopied: true })
+    );
+    expect(html).toContain('Copied SVG');
+  });
+
   it('renders nothing when the export produced no markup', () => {
     expect(render('')).toBe('');
     expect(render('  \n\t ')).toBe('');

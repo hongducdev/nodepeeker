@@ -153,12 +153,12 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
           {isCopied ? (
             <>
               <Check size={12} className="text-green" />
-              <span className="text-green">Copied</span>
+              <span className="text-green">{tab === 'svg' ? 'Copied SVG' : 'Copied'}</span>
             </>
           ) : (
             <>
               <Copy size={12} />
-              <span>Copy</span>
+              <span>{tab === 'svg' ? 'Copy SVG' : 'Copy'}</span>
             </>
           )}
         </button>
@@ -166,7 +166,9 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
 
       {/* The rendering sits above the markup it was produced from: on the SVG tab most of the
           code box is one enormous `<path d=…>` line, so the visual answer goes first. */}
-      {tab === 'svg' && svg ? <SvgPreview markup={svg} /> : null}
+      {tab === 'svg' && svg ? (
+        <SvgPreview markup={svg} onCopy={onCopy} isCopied={isCopied} />
+      ) : null}
 
       <div className="relative rounded-md bg-crust text-text p-2.5 overflow-x-auto max-h-56 scrollbar-thin border border-surface0 select-text">
         {tab === 'svg' && isSvgLoading && !svg ? (
