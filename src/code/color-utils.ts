@@ -26,7 +26,7 @@ export function rgbToRgba(r: number, g: number, b: number, a = 1): string {
   return `rgba(${r255}, ${g255}, ${b255}, ${alpha})`;
 }
 
-export function rgbToHsl(r: number, g: number, b: number): string {
+export function rgbToHsl(r: number, g: number, b: number, a = 1): string {
   const rNorm = Math.max(0, Math.min(1, r));
   const gNorm = Math.max(0, Math.min(1, g));
   const bNorm = Math.max(0, Math.min(1, b));
@@ -58,8 +58,12 @@ export function rgbToHsl(r: number, g: number, b: number): string {
   const hDeg = Math.round(h * 360);
   const sPct = Math.round(s * 100);
   const lPct = Math.round(l * 100);
+  const alpha = Math.round(a * 100) / 100;
 
-  return `hsl(${hDeg}, ${sPct}%, ${lPct}%)`;
+  if (alpha === 1) {
+    return `hsl(${hDeg}, ${sPct}%, ${lPct}%)`;
+  }
+  return `hsla(${hDeg}, ${sPct}%, ${lPct}%, ${alpha})`;
 }
 
 export function extractColorsFromNode(node: SceneNode): ColorToken[] {
@@ -73,7 +77,7 @@ export function extractColorsFromNode(node: SceneNode): ColorToken[] {
       const opacity = typeof paint.opacity === 'number' ? paint.opacity : 1;
       const hex = rgbToHex(r, g, b);
       const rgba = rgbToRgba(r, g, b, opacity);
-      const hsl = rgbToHsl(r, g, b);
+      const hsl = rgbToHsl(r, g, b, opacity);
       const key = `${hex}-${opacity}-${source}`;
 
       if (!tokenMap.has(key)) {
@@ -90,7 +94,7 @@ export function extractColorsFromNode(node: SceneNode): ColorToken[] {
         const opacity = Math.round((typeof a === 'number' ? a : 1) * 100) / 100;
         const hex = rgbToHex(r, g, b);
         const rgba = rgbToRgba(r, g, b, opacity);
-        const hsl = rgbToHsl(r, g, b);
+        const hsl = rgbToHsl(r, g, b, opacity);
         const key = `${hex}-${opacity}-${source}`;
 
         if (!tokenMap.has(key)) {

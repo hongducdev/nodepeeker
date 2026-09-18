@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ColorToken } from '../../types/messages';
 import { Palette, Copy, Check } from 'lucide-react';
+import { toHex8 } from '../../utils/color';
 
 interface ColorPaletteProps {
   colors: ColorToken[];
@@ -14,7 +15,7 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({ colors, onCopy, copi
   const getFormattedValue = (c: ColorToken) => {
     switch (format) {
       case 'HEX':
-        return c.hex;
+        return c.opacity < 1 ? toHex8(c.hex, c.opacity) : c.hex;
       case 'RGB':
         return c.rgba;
       case 'HSL':

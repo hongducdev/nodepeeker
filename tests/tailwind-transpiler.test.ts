@@ -156,4 +156,60 @@ describe('tailwind-transpiler', () => {
     expect(result).toContain('rounded-br-[12px]');
     expect(result).toContain('rounded-bl-[16px]');
   });
+
+  it('includes opacity suffix on Tailwind color classes when fill or stroke has reduced opacity', () => {
+    const data: NodeInspectionData = {
+      id: 'alpha-box',
+      name: 'Alpha Box',
+      type: 'FRAME',
+      css: {},
+      colors: [
+        { hex: '#2563EB', rgba: 'rgba(37, 99, 235, 0.5)', hsl: 'hsla(221, 83%, 53%, 0.5)', opacity: 0.5, source: 'fill' },
+        { hex: '#10B981', rgba: 'rgba(16, 185, 129, 0.25)', hsl: 'hsla(161, 84%, 39%, 0.25)', opacity: 0.25, source: 'stroke' },
+      ],
+      boxModel: {
+        width: 100,
+        height: 100,
+        x: 0,
+        y: 0,
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        gap: 0,
+        cornerRadius: 0,
+      },
+    };
+
+    const result = transpileToTailwind(data);
+    expect(result).toContain('bg-[#2563EB]/50');
+    expect(result).toContain('border-[#10B981]/25');
+  });
+
+  it('includes opacity suffix on text color when text fill has reduced opacity', () => {
+    const textData: NodeInspectionData = {
+      id: 'alpha-text',
+      name: 'Alpha Text',
+      type: 'TEXT',
+      css: {},
+      colors: [
+        { hex: '#EF4444', rgba: 'rgba(239, 68, 68, 0.75)', hsl: 'hsla(0, 84%, 60%, 0.75)', opacity: 0.75, source: 'fill' },
+      ],
+      boxModel: {
+        width: 100,
+        height: 20,
+        x: 0,
+        y: 0,
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        gap: 0,
+        cornerRadius: 0,
+      },
+    };
+
+    const result = transpileToTailwind(textData);
+    expect(result).toContain('text-[#EF4444]/75');
+  });
 });

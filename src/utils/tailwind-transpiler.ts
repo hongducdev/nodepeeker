@@ -138,7 +138,8 @@ export function transpileToTailwind(data: NodeInspectionData): string {
     // Text color from fill
     const textFill = colors.find((c) => c.source === 'fill');
     if (textFill) {
-      typographyClasses.push(`text-[${textFill.hex}]`);
+      const opacitySuffix = textFill.opacity < 1 ? `/${Math.round(textFill.opacity * 100)}` : '';
+      typographyClasses.push(`text-[${textFill.hex}]${opacitySuffix}`);
     }
 
     const leading = toTailwindLineHeight(typography?.lineHeight);
@@ -152,7 +153,8 @@ export function transpileToTailwind(data: NodeInspectionData): string {
   if (type !== 'TEXT') {
     const bgFill = colors.find((c) => c.source === 'fill');
     if (bgFill) {
-      visualClasses.push(`bg-[${bgFill.hex}]`);
+      const opacitySuffix = bgFill.opacity < 1 ? `/${Math.round(bgFill.opacity * 100)}` : '';
+      visualClasses.push(`bg-[${bgFill.hex}]${opacitySuffix}`);
     }
   }
 
@@ -183,7 +185,8 @@ export function transpileToTailwind(data: NodeInspectionData): string {
   } else {
     const stroke = colors.find((c) => c.source === 'stroke');
     if (stroke) {
-      visualClasses.push('border', `border-[${stroke.hex}]`);
+      const opacitySuffix = stroke.opacity < 1 ? `/${Math.round(stroke.opacity * 100)}` : '';
+      visualClasses.push('border', `border-[${stroke.hex}]${opacitySuffix}`);
     }
   }
 

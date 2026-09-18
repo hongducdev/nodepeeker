@@ -21,6 +21,8 @@ describe('color-utils', () => {
     expect(rgbToHsl(0, 0, 0)).toBe('hsl(0, 0%, 0%)');
     expect(rgbToHsl(1, 1, 1)).toBe('hsl(0, 0%, 100%)');
     expect(rgbToHsl(1, 0, 0)).toBe('hsl(0, 100%, 50%)');
+    expect(rgbToHsl(1, 0, 0, 0.5)).toBe('hsla(0, 100%, 50%, 0.5)');
+    expect(rgbToHsl(0, 0, 0, 0.8)).toBe('hsla(0, 0%, 0%, 0.8)');
   });
 
   it('extracts colors from a mock scene node with solid fills and strokes', () => {
