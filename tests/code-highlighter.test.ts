@@ -63,6 +63,20 @@ describe('CodeHighlighter', () => {
     expect(typography).not.toBe('');
     expect(spacing).not.toBe(typography);
   });
+
+  it('allows granular text selection in CSS mode and marks line numbers as select-none', () => {
+    const html = render('width: 320px;\nheight: 48px;', 'css');
+    expect(html).toContain('select-text');
+    expect(html).not.toContain('select-all');
+    expect(html).toContain('select-none');
+  });
+
+  it('allows granular text selection in Tailwind mode', () => {
+    const html = render('flex p-4 bg-[#2563EB]', 'tailwind');
+    expect(html).toContain('select-text');
+    expect(html).not.toContain('select-all');
+    expect(html).toContain('select-none');
+  });
 });
 
 describe('CodeHighlighter (svg)', () => {
@@ -111,5 +125,12 @@ describe('CodeHighlighter (svg)', () => {
   it('renders the comment inside its own styled span', () => {
     const html = render('<!-- exported by Figma -->', 'svg');
     expect(html).toMatch(/class="[^"]*italic[^"]*">&lt;!-- exported by Figma --&gt;</);
+  });
+
+  it('allows granular text selection in SVG mode and marks line numbers as select-none', () => {
+    const html = render(SVG, 'svg');
+    expect(html).toContain('select-text');
+    expect(html).not.toContain('select-all');
+    expect(html).toContain('select-none');
   });
 });

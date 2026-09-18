@@ -13,7 +13,7 @@ const EMPTY_PLACEHOLDER: Record<CodeHighlighterProps['language'], string> = {
 
 const Swatch: React.FC<{ hex: string; size: number }> = ({ hex, size }) => (
   <span
-    className="inline-block rounded-full border border-surface2 shrink-0 shadow-xs"
+    className="inline-block rounded-full border border-surface2 shrink-0 shadow-xs select-none"
     style={{ width: size, height: size, backgroundColor: hex }}
   />
 );
@@ -26,7 +26,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
   if (language === 'css') {
     const lines = code.split('\n');
     return (
-      <div className="font-mono text-xs select-all">
+      <div className="font-mono text-xs select-text">
         {lines.map((line, idx) => {
           const trimmed = line.trim();
 
@@ -85,7 +85,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
   if (language === 'svg') {
     const lines = code.split('\n');
     return (
-      <div className="font-mono text-xs select-all">
+      <div className="font-mono text-xs select-text">
         {lines.map((line, idx) => (
           <div
             key={idx}
@@ -104,7 +104,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
   // Tailwind language
   const classes = code.split(/\s+/).filter(Boolean);
   return (
-    <div className="font-mono text-xs leading-relaxed flex flex-wrap gap-1.5 p-1 select-all">
+    <div className="font-mono text-xs leading-relaxed flex flex-wrap gap-1.5 p-1 select-text">
       {classes.map((cls, idx) => {
         const colorClass = getTailwindClassStyle(cls);
         const hexMatch = cls.match(/#([0-9a-fA-F]{3,8})/);

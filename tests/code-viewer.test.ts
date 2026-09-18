@@ -96,4 +96,9 @@ describe('CodeViewer', () => {
     );
     expect(textOf(html)).toContain('border: 2px dashed #7287FD;');
   });
+
+  it('marks the code container as selectable text with select-text', () => {
+    const html = render(baseData());
+    expect(html).toContain('select-text');
+  });
 });

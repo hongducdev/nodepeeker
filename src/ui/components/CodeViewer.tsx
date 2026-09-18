@@ -94,6 +94,13 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
       }
 
       if ((e.ctrlKey || e.metaKey || e.altKey) && key === 'c') {
+        // If the user has highlighted a specific piece of text, let the browser's
+        // native copy handler handle it instead of replacing it with the entire code block.
+        const selection = window.getSelection ? window.getSelection()?.toString() : '';
+        if (selection && selection.length > 0) {
+          return;
+        }
+
         // Mirror the Copy button's disabled state: never copy an empty tab
         // (e.g. a node whose SVG export failed), which would clear the
         // clipboard and report a copy that did not happen.
@@ -161,7 +168,7 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
           code box is one enormous `<path d=…>` line, so the visual answer goes first. */}
       {tab === 'svg' && svg ? <SvgPreview markup={svg} /> : null}
 
-      <div className="relative rounded-md bg-crust text-text p-2.5 overflow-x-auto max-h-56 scrollbar-thin border border-surface0">
+      <div className="relative rounded-md bg-crust text-text p-2.5 overflow-x-auto max-h-56 scrollbar-thin border border-surface0 select-text">
         {tab === 'svg' && isSvgLoading && !svg ? (
           <span className="text-overlay1 italic">Loading SVG…</span>
         ) : (
