@@ -5,14 +5,27 @@ import { VideoExport } from '../src/ui/components/VideoExport';
 
 // renderToStaticMarkup covers the initial (MP4) render and the disabled/encoding state
 // without jsdom or testing-library, neither of which is installed.
-const render = (props: { isExporting?: boolean; durationSeconds?: number } = {}) =>
+const render = (
+  props: {
+    isExporting?: boolean;
+    durationSeconds?: number;
+    hasVideo?: boolean;
+    hasVideoFill?: boolean;
+    isDirectMedia?: boolean;
+  } = {}
+) =>
   renderToStaticMarkup(
     createElement(VideoExport, {
-      video: {
-        frameId: '9:9',
-        frameName: 'Loading / Loop',
-        durationSeconds: props.durationSeconds,
-      },
+      video:
+        props.hasVideo === false
+          ? undefined
+          : {
+              frameId: '9:9',
+              frameName: 'Loading / Loop',
+              durationSeconds: props.durationSeconds,
+              hasVideoFill: props.hasVideoFill,
+              isDirectMedia: props.isDirectMedia,
+            },
       onExport: () => {},
       isExporting: props.isExporting ?? false,
     })
@@ -62,5 +75,38 @@ describe('VideoExport', () => {
     const html = render({ isExporting: true });
     expect(textOf(html)).toContain('Encoding');
     expect(html).toContain('disabled');
+  });
+
+  it('renders dimmed, unclickable and disabled when no video or gif is detected', () => {
+    const html = render({ hasVideo: false });
+    const text = textOf(html);
+
+    expect(text).toContain('Disabled');
+    expect(text).toContain('No video, GIF, or motion animation detected in selection');
+    expect(html).toContain('opacity-25');
+    expect(html).toContain('blur-[1.5px]');
+    expect(text).toContain('Chỉ hỗ trợ Video hoặc GIF');
+    expect(html).toContain('select-none');
+    expect(html).toContain('pointer-events-none');
+    expect(html).toContain('disabled');
+    expect(text).not.toContain('Loading / Loop');
+  });
+
+  it('points at Dev Mode for the original file when the selection paints a video', () => {
+    // A plugin cannot read video bytes (`VideoPaint` gives only a hash), so choosing the wrong
+    // silent nothing would leave the user with no route to their own file.
+    const text = textOf(render({ hasVideoFill: true }));
+    expect(text).toContain('Need the original file?');
+    expect(text).toContain('Dev Mode');
+    expect(text).toContain('Assets');
+    expect(text).toContain('Download');
+  });
+
+  it('omits the Dev Mode hint when the selection is not a video fill', () => {
+    // A GIF is read straight from its fill bytes, so the hint would be noise there.
+    expect(textOf(render())).not.toContain('Need the original file?');
+    expect(textOf(render({ hasVideoFill: true, isDirectMedia: true }))).not.toContain(
+      'Need the original file?'
+    );
   });
 });

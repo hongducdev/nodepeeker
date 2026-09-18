@@ -215,13 +215,11 @@ export const App: React.FC = () => {
               svgContent={svgContent}
               onCopy={copy}
             />
-            {selection.data.video && (
-              <VideoExport
-                video={selection.data.video}
-                onExport={handleVideoExport}
-                isExporting={isVideoExporting}
-              />
-            )}
+            <VideoExport
+              video={selection.data.video}
+              onExport={handleVideoExport}
+              isExporting={isVideoExporting}
+            />
           </div>
         </>
       )}

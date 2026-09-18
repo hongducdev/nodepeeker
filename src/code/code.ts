@@ -2,14 +2,14 @@ import { UIToPluginMessage } from '../types/messages';
 import { extractNodeData } from './extractors';
 import { uint8ArrayToString } from './color-utils';
 import { clampFps } from '../utils/video-options';
-import { resolveVideoFrame } from './video-frame';
+import { resolveVideoFrame, extractRawGifBytes } from './video-frame';
+import type { VideoScale, VideoQuality } from '../types/messages';
 import { measureDistance, type DistanceMeasurement } from '../utils/distance';
 
 figma.showUI(__html__, {
   width: 340,
-  height: 580,
+  height: 640,
   themeColors: true,
-  title: 'NodePeeker',
 });
 try {
   figma.root.setRelaunchData({ open: 'NodePeeker' });
@@ -105,8 +105,61 @@ async function handleSelectionChange() {
 
 figma.on('selectionchange', handleSelectionChange);
 
+async function exportNodeAsVideo(
+  node: SceneNode,
+  options: {
+    format: 'MP4' | 'GIF';
+    fps: number;
+    quality: VideoQuality;
+    loopCount: number;
+    scale: VideoScale;
+  }
+): Promise<Uint8Array> {
+  const { format, fps, quality, loopCount, scale } = options;
+  const nodeWidth = 'width' in node && typeof node.width === 'number' ? node.width : 0;
+  const nodeHeight = 'height' in node && typeof node.height === 'number' ? node.height : 0;
+
+  let constraint: { type: 'SCALE'; value: VideoScale } | { type: 'HEIGHT'; value: number } = {
+    type: 'SCALE',
+    value: scale,
+  };
+  if (nodeWidth > 0 && nodeHeight > 0 && (nodeWidth * scale > 1920 || nodeHeight * scale > 1080)) {
+    const ratio = Math.min(1920 / (nodeWidth * scale), 1080 / (nodeHeight * scale));
+    constraint = { type: 'HEIGHT', value: Math.max(1, Math.round(nodeHeight * scale * ratio)) };
+  }
+
+  // The plugin is strictly read-only: it must never create a wrapper node on the user's page,
+  // because that would land in their document and undo history. A node Figma refuses to encode
+  // therefore fails here, and the caller decides whether an enclosing frame is worth encoding.
+  const bytes =
+    format === 'GIF'
+      ? await node.exportAsync({
+          format: 'GIF',
+          fps: clampFps('GIF', fps),
+          loopCount,
+          constraint,
+        })
+      : await node.exportAsync({
+          format: 'MP4',
+          fps: clampFps('MP4', fps),
+          quality,
+          constraint,
+        });
+
+  if (!bytes || bytes.length === 0) {
+    throw new Error('Figma returned no video data for this layer.');
+  }
+
+  return bytes;
+}
+
 figma.ui.onmessage = async (msg: UIToPluginMessage) => {
   if (msg.type === 'INIT_REQUEST') {
+    try {
+      figma.ui.resize(340, 640);
+    } catch {
+      // resize optional
+    }
     figma.ui.postMessage({ type: 'FILE_CONTEXT', ...readFileContext() });
     await handleSelectionChange();
     return;
@@ -164,9 +217,32 @@ figma.ui.onmessage = async (msg: UIToPluginMessage) => {
     }
   }
   if (msg.type === 'REQUEST_VIDEO_EXPORT') {
-    // Re-resolve from the live selection rather than trusting anything the UI sent back.
-    const frame = resolveVideoFrame(figma.currentPage.selection[0]);
+    const selectedNode = figma.currentPage.selection[0];
+    if (!selectedNode) {
+      figma.ui.postMessage({
+        type: 'EXPORT_ERROR',
+        error: 'No layer selected for export',
+      });
+      return;
+    }
 
+    const { format, quality, loopCount, scale } = msg.options;
+    const safeName = (selectedNode.name || 'animation').replace(/[/\\?%*:|"<>]/g, '-');
+    // 1. Direct GIF asset extraction: if user selected a GIF layer and wants GIF format,
+    // export the original GIF bytes directly without re-encoding through Figma's video pipeline.
+    if (format === 'GIF') {
+      const rawGif = await extractRawGifBytes(selectedNode);
+      if (rawGif) {
+        figma.ui.postMessage({
+          type: 'VIDEO_EXPORT_RESULT',
+          payload: { format: 'GIF', bytes: rawGif, name: safeName },
+        });
+        return;
+      }
+    }
+
+    // 2. Resolve encodable frame: must be placed directly on a page or inside a page-level frame
+    const frame = resolveVideoFrame(selectedNode);
     if (!frame) {
       figma.ui.postMessage({
         type: 'EXPORT_ERROR',
@@ -175,33 +251,58 @@ figma.ui.onmessage = async (msg: UIToPluginMessage) => {
       return;
     }
 
-    const { format, quality, loopCount, scale } = msg.options;
-    const constraint = { type: 'SCALE' as const, value: scale };
-    const safeName = (frame.name || 'animation').replace(/[/\\?%*:|"<>]/g, '-');
+    // 3. If a specific child layer was selected inside the frame (e.g. a video player or animation),
+    // encode ONLY that selected layer instead of encoding the entire parent page/landing design.
+    if (selectedNode.id !== frame.id) {
+      try {
+        const bytes = await exportNodeAsVideo(selectedNode, {
+          format,
+          fps: msg.options.fps,
+          quality,
+          loopCount,
+          scale,
+        });
+
+        figma.ui.postMessage({
+          type: 'VIDEO_EXPORT_RESULT',
+          payload: { format, bytes, name: safeName },
+        });
+        return;
+      } catch {
+        // Fall through to frame export if isolated node export is rejected
+      }
+    }
+
+    // 4. Encode the frame (the selection itself when it already is the page-level frame).
+    // The file is named after the frame here, not the selection, because the frame is what
+    // the bytes actually contain -- the name is the only record of which path ran.
+    const frameSafeName = (frame.name || 'animation').replace(/[/\\?%*:|"<>]/g, '-');
 
     try {
-      const bytes =
-        format === 'GIF'
-          ? await frame.exportAsync({
-              format: 'GIF',
-              fps: clampFps('GIF', msg.options.fps),
-              loopCount,
-              constraint,
-            })
-          : await frame.exportAsync({
-              format: 'MP4',
-              fps: clampFps('MP4', msg.options.fps),
-              quality,
-              constraint,
-            });
+      const bytes = await exportNodeAsVideo(frame, {
+        format,
+        fps: msg.options.fps,
+        quality,
+        loopCount,
+        scale,
+      });
 
       figma.ui.postMessage({
         type: 'VIDEO_EXPORT_RESULT',
-        payload: { format, bytes, name: safeName },
+        payload: { format, bytes, name: frameSafeName },
       });
     } catch (err: unknown) {
-      // Figma rejects when the frame has nothing animated to encode; say so plainly rather
-      // than surfacing a generic failure.
+      if (format === 'GIF') {
+        const fallbackGif = await extractRawGifBytes(selectedNode);
+        if (fallbackGif) {
+          figma.ui.postMessage({
+            type: 'VIDEO_EXPORT_RESULT',
+            payload: { format: 'GIF', bytes: fallbackGif, name: safeName },
+          });
+          return;
+        }
+      }
+
       const detail = err instanceof Error ? err.message : String(err);
       figma.ui.postMessage({
         type: 'EXPORT_ERROR',

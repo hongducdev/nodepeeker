@@ -26,7 +26,9 @@ const figmaMock = {
       return selection;
     },
   },
+  getImageByHash: vi.fn(),
   ui: {
+    resize: vi.fn(),
     postMessage: (msg: Record<string, unknown>) => posted.push(msg),
     onmessage: undefined as unknown as (msg: UIToPluginMessage) => Promise<void>,
   },
@@ -62,6 +64,8 @@ beforeEach(() => {
   posted.length = 0;
   exportShouldFail = false;
   exportAsync.mockClear();
+  figmaMock.getImageByHash.mockReset();
+  figmaMock.fileKey = 'aXrGAc4tTcMFWklkcboC1l';
   selection.length = 0;
   selection.push(node());
 });
@@ -219,6 +223,144 @@ describe('sandbox video export', () => {
     expect(posted[0]).toMatchObject({
       error: expect.stringContaining('export unavailable'),
     });
+  });
+
+  it('directly extracts raw GIF bytes without calling exportAsync when layer has GIF fill', async () => {
+    const gifBytes = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 1, 2]); // GIF89a
+    const gifNode = {
+      ...node(),
+      id: 'g1',
+      name: 'my-animation',
+      fills: [{ type: 'IMAGE', imageHash: 'hash_gif', visible: true }],
+    };
+
+    figmaMock.getImageByHash.mockImplementation((hash: string) =>
+      hash === 'hash_gif' ? { getBytesAsync: async () => gifBytes } : null
+    );
+
+    selection.length = 0;
+    selection.push(gifNode);
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'GIF', fps: 30, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+
+    expect(exportAsync).not.toHaveBeenCalled();
+    const result = posted.find((m) => m.type === 'VIDEO_EXPORT_RESULT');
+    expect(result).toBeDefined();
+    expect(result?.payload).toMatchObject({
+      format: 'GIF',
+      bytes: gifBytes,
+      name: 'my-animation',
+    });
+  });
+  it('clamps height constraint when frame dimensions exceed 1920x1080 plan limit', async () => {
+    const bigFrame = {
+      ...frame(),
+      name: 'landing',
+      width: 1920,
+      height: 21327,
+    };
+    selection.length = 0;
+    selection.push(bigFrame);
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'MP4', fps: 30, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+
+    expect(exportAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        format: 'MP4',
+        constraint: { type: 'HEIGHT', value: 1080 },
+      })
+    );
+  });
+
+  it('encodes the selected video layer, not the enclosing page frame', async () => {
+    // The reported bug: selecting one video inside a tall page encoded the whole page instead.
+    const pageFrameExport = vi.fn(async () => new Uint8Array([9, 9, 9]));
+    const outer = { ...frame(), exportAsync: pageFrameExport };
+    const layerExport = vi.fn(async () => new Uint8Array([7, 7, 7]));
+
+    selection.length = 0;
+    selection.push({
+      id: '9:1',
+      name: 'Video Player',
+      type: 'RECTANGLE',
+      width: 640,
+      height: 360,
+      parent: outer,
+      fills: [{ type: 'VIDEO', visible: true }],
+      exportAsync: layerExport,
+      getTopLevelFrame: () => outer,
+    });
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'MP4', fps: 30, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+
+    expect(layerExport).toHaveBeenCalledTimes(1);
+    expect(pageFrameExport).not.toHaveBeenCalled();
+    const result = posted.find((m) => m.type === 'VIDEO_EXPORT_RESULT') as
+      | { payload: { bytes: Uint8Array; name: string } }
+      | undefined;
+    expect(Array.from(result?.payload.bytes ?? [])).toEqual([7, 7, 7]);
+    expect(result?.payload.name).toBe('Video Player');
+  });
+
+  it('falls back to the enclosing page frame only when the layer cannot be encoded alone', async () => {
+    const pageFrameExport = vi.fn(async () => new Uint8Array([9, 9, 9]));
+    const outer = { ...frame(), exportAsync: pageFrameExport };
+
+    selection.length = 0;
+    selection.push({
+      id: '9:1',
+      name: 'Nested / Layer',
+      type: 'RECTANGLE',
+      width: 640,
+      height: 360,
+      parent: outer,
+      fills: [],
+      exportAsync: vi.fn(async () => {
+        throw new Error('layer cannot be encoded');
+      }),
+      getTopLevelFrame: () => outer,
+    });
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'MP4', fps: 30, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+
+    expect(pageFrameExport).toHaveBeenCalledTimes(1);
+    const result = posted.find((m) => m.type === 'VIDEO_EXPORT_RESULT') as
+      | { payload: { bytes: Uint8Array; name: string } }
+      | undefined;
+    // The file is named after the frame, so the name records which path ran: a file named
+    // after the selection means the selected layer was encoded, a frame name means the
+    // fallback shipped the whole frame.
+    expect(result?.payload.name).toBe('Loading - Loop');
+    expect(Array.from(result?.payload.bytes ?? [])).toEqual([9, 9, 9]);
+  });
+
+  it('never creates a node on the user page, which would enter their undo history', async () => {
+    // NodePeeker is read-only: no wrapper frame, no clone, no temporary node anywhere.
+    expect(
+      (figmaMock as unknown as Record<string, unknown>).createFrame
+    ).toBeUndefined();
+
+    selection.length = 0;
+    selection.push(frame());
+
+    await send({
+      type: 'REQUEST_VIDEO_EXPORT',
+      options: { format: 'MP4', fps: 30, quality: 'HIGH', loopCount: 0, scale: 1 },
+    });
+
+    expect(posted.find((m) => m.type === 'VIDEO_EXPORT_RESULT')).toBeDefined();
   });
 });
 

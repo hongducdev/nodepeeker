@@ -148,47 +148,57 @@ describe('extraction: video target', () => {
     return outer;
   };
 
-  it('reports the frame and its motion duration when the frame is animated', async () => {
+  it('reports the frame and its motion duration when the animated frame itself is selected', async () => {
     const outer = animatedFrame();
-    const data = await extractNodeData(
-      asNode({ type: 'VECTOR', parent: outer, getTopLevelFrame: () => outer })
-    );
+    const data = await extractNodeData(outer);
 
     expect(data.video).toEqual({
       frameId: '9:9',
       frameName: 'Loading / Loop',
       durationSeconds: 0.6,
+      initialFormat: 'MP4',
     });
+  });
+
+  it('reports nothing when a static child layer inside an animated frame is selected', async () => {
+    const outer = animatedFrame();
+    const staticChild = asNode({ type: 'VECTOR', parent: outer, getTopLevelFrame: () => outer });
+    const data = await extractNodeData(staticChild);
+
+    expect(data.video).toBeUndefined();
   });
 
   it('reports nothing for a static frame, so the UI offers no dead action', async () => {
     // A frame with no Motion timeline is exactly what exportAsync rejects; gating here is
     // the point of the detection.
     const outer = animatedFrame({ timelines: [] });
-    const data = await extractNodeData(
-      asNode({ type: 'VECTOR', parent: outer, getTopLevelFrame: () => outer })
-    );
+    const data = await extractNodeData(outer);
 
     expect(data.video).toBeUndefined();
   });
 
   it('treats applied animation styles or keyframes as motion even without a timeline', async () => {
     const withStyles = await extractNodeData(
-      asNode({
-        parent: { type: 'PAGE' },
-        getTopLevelFrame: () => animatedFrame({ timelines: [], animationStyles: [{ id: 'a1' }] }),
-      })
+      animatedFrame({ timelines: [], animationStyles: [{ id: 'a1' }] })
     );
     expect(withStyles.video).toBeDefined();
 
     const withKeyframes = await extractNodeData(
-      asNode({
-        parent: { type: 'PAGE' },
-        getTopLevelFrame: () =>
-          animatedFrame({ timelines: [], animations: { TRANSLATION_X: { tracks: [] } } }),
-      })
+      animatedFrame({ timelines: [], animations: { TRANSLATION_X: { tracks: [] } } })
     );
     expect(withKeyframes.video).toBeDefined();
+  });
+
+  it('reports video target when frame contains video fills or gif name', async () => {
+    const withVideoFill = await extractNodeData(
+      animatedFrame({ timelines: [], fills: [{ type: 'VIDEO', visible: true }] })
+    );
+    expect(withVideoFill.video).toBeDefined();
+
+    const withGifName = await extractNodeData(
+      animatedFrame({ timelines: [], name: 'spinner.gif' })
+    );
+    expect(withGifName.video).toBeDefined();
   });
 
   it('reports the longest timeline when a frame has several', async () => {
@@ -199,9 +209,7 @@ describe('extraction: video target', () => {
         { id: 't2', duration: 0.4 },
       ],
     });
-    const data = await extractNodeData(
-      asNode({ parent: { type: 'PAGE' }, getTopLevelFrame: () => outer })
-    );
+    const data = await extractNodeData(outer);
 
     expect(data.video?.durationSeconds).toBe(1.25);
   });

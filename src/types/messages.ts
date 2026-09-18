@@ -82,7 +82,16 @@ export interface NodeInspectionData {
    *  Animate flows are not resolvable by `exportAsync`, so `reactions` is deliberately not a
    *  signal here. Presence gates the animation-export UI, so a static frame offers no dead
    *  action. */
-  video?: { frameId: string; frameName: string; durationSeconds?: number };
+  video?: {
+    frameId: string;
+    frameName: string;
+    durationSeconds?: number;
+    initialFormat?: VideoFormat;
+    isDirectMedia?: boolean;
+    /** The selection paints a real video; its bytes are unreadable to plugins, so the UI can
+     *  point at Dev Mode's asset download for the original file. */
+    hasVideoFill?: boolean;
+  };
 }
 
 export type VideoFormat = 'MP4' | 'GIF';

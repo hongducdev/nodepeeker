@@ -176,12 +176,15 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
 
   // Only frames Figma can actually encode get a video target; the UI gates on its presence,
   // so a static frame never offers an export that would fail.
-  const videoTarget = resolveVideoTarget(node);
+  const videoTarget = await resolveVideoTarget(node);
   const video = videoTarget
     ? {
         frameId: videoTarget.frame.id,
-        frameName: videoTarget.frame.name,
+        frameName: videoTarget.targetName || videoTarget.frame.name,
         durationSeconds: videoTarget.durationSeconds,
+        initialFormat: videoTarget.initialFormat,
+        isDirectMedia: videoTarget.isDirectMedia,
+        hasVideoFill: videoTarget.hasVideoFill,
       }
     : undefined;
 
