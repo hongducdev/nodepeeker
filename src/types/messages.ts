@@ -43,6 +43,7 @@ export interface BorderData {
   strokeStyle: 'solid' | 'dashed' | 'dotted';
   dashPattern?: number[];
   color: string;
+  opacity?: number;
 }
 
 /** A real Figma shadow effect, reported verbatim rather than rounded to a preset. */

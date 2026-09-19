@@ -15,6 +15,13 @@ export function rgbToHex(r: number, g: number, b: number): string {
   return `#${hex}`;
 }
 
+export function toHex8(hex: string, opacity: number): string {
+  if (opacity >= 1) return hex;
+  const alpha = Math.max(0, Math.min(255, Math.round(opacity * 255)));
+  const aHex = alpha.toString(16).padStart(2, '0').toUpperCase();
+  return `${hex}${aHex}`;
+}
+
 export function rgbToRgba(r: number, g: number, b: number, a = 1): string {
   const r255 = rgbFloatTo255(r);
   const g255 = rgbFloatTo255(g);

@@ -81,6 +81,11 @@ export const BorderStyle: React.FC<BorderStyleProps> = ({ border, onCopy, copied
               {strokeAlign}
             </span>
           )}
+          {border.opacity !== undefined && border.opacity < 1 && (
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface0 text-overlay0">
+              {Math.round(border.opacity * 100)}%
+            </span>
+          )}
         </div>
       </div>
 

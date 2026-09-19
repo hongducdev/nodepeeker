@@ -106,4 +106,40 @@ describe('border extraction scoping', () => {
     expect((await extractNodeData(dashed)).border?.strokeStyle).toBe('dashed');
     expect((await extractNodeData(dotted)).border?.strokeStyle).toBe('dotted');
   });
+
+  it('preserves stroke opacity in border color as 8-character HEXA alpha and border.opacity', async () => {
+    const node = {
+      id: 'n5',
+      name: 'Translucent Stroked Frame',
+      type: 'FRAME',
+      width: 52,
+      height: 52,
+      x: 0,
+      y: 0,
+      strokes: [
+        {
+          type: 'SOLID',
+          visible: true,
+          color: { r: 0.1, g: 0.15, b: 0.29 }, // #1A264A
+          opacity: 0.1,
+        },
+      ],
+      strokeWeight: 1,
+      dashPattern: [4, 4],
+      strokeAlign: 'CENTER',
+      fills: [],
+      effects: [],
+      children: [],
+    } as unknown as SceneNode;
+
+    const data = await extractNodeData(node);
+    expect(data.border).toBeDefined();
+    expect(data.border?.strokeWeight).toBe(1);
+    expect(data.border?.strokeStyle).toBe('dashed');
+    expect(data.border?.strokeAlign).toBe('CENTER');
+    expect(data.border?.opacity).toBe(0.1);
+    // 8-character HEXA with alpha channel for 10% opacity (0.1 * 255 = 26 = 1A)
+    expect(data.border?.color).toMatch(/^#[0-9A-F]{6}1A$/i);
+    expect(data.css['border']).toMatch(/1px dashed #[0-9A-F]{6}1A/i);
+  });
 });

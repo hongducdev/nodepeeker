@@ -1,5 +1,5 @@
 import { BoxModelData, NodeInspectionData, TypographyData, BorderData, ShadowData } from '../types/messages';
-import { extractColorsFromNode, rgbToHex } from './color-utils';
+import { extractColorsFromNode, rgbToHex, toHex8 } from './color-utils';
 import { resolveVideoTarget } from './video-frame';
 
 export async function extractNodeData(node: SceneNode): Promise<NodeInspectionData> {
@@ -193,6 +193,11 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
   if ('strokes' in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
     const visibleStroke = node.strokes.find((s) => s.visible !== false);
     if (visibleStroke) {
+      const strokeOpacity =
+        'opacity' in visibleStroke && typeof visibleStroke.opacity === 'number'
+          ? Math.round(visibleStroke.opacity * 100) / 100
+          : 1;
+
       let strokeColor = '#000000';
       if (visibleStroke.type === 'SOLID') {
         strokeColor = rgbToHex(
@@ -203,6 +208,10 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
       } else {
         const strokeToken = colors.find((c) => c.source === 'stroke');
         if (strokeToken) strokeColor = strokeToken.hex;
+      }
+
+      if (strokeOpacity < 1) {
+        strokeColor = toHex8(strokeColor, strokeOpacity);
       }
 
       let uniformWeight = 0;
@@ -260,6 +269,7 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
         strokeStyle,
         dashPattern,
         color: strokeColor,
+        opacity: strokeOpacity < 1 ? strokeOpacity : undefined,
       };
 
       if (individualWeights) {
