@@ -1,0 +1,12 @@
+{
+  "name": "NodePeeker Bridge",
+  "id": "nodepeeker-bridge",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "devAllowedDomains": ["http://localhost:3939"]
+  }
+}

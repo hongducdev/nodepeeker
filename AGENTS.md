@@ -82,6 +82,17 @@ The `video` field is also the **gate on the Animation Export section interactivi
 - **Extraction is async only because Figma is.** `getCSSAsync()` is the only promise in `extractors.ts`; everything else there is synchronous. Vector export no longer happens during extraction — it lives behind `REQUEST_EXPORT` in `code.ts`.
 - **Binary crosses `postMessage` as `Uint8Array`, via structured clone.** `figma.ui.postMessage` clones rather than serializing to JSON, so PNG and video payloads are posted as real `Uint8Array` objects and used directly. **Never `Array.from(bytes)`** — that expands a multi-MB encode into millions of JS numbers (an 8 MB video becomes an 8-million-element array). SVG is still decoded to a `string` first via `uint8ArrayToString`, because the code viewer renders it as text.
 
+### Bridge (`bridge/`) architectural rules
+
+The bridge is a **separate app that happens to share the repo**: its own manifest, build scripts, and runtime. It never widens NodePeeker's `networkAccess: ["none"]`, and it reuses `src/code/extractors.ts` by relative import rather than forking it. A `bridge/` change must never alter what the shipped plugin can reach.
+
+- **The staleness guard lives on the wire too.** `BridgeState.pushSelection` drops any `seq` not newer than the last accepted one — the same guarantee `code.ts` makes in-process, for the same reason. A slow extraction from an old selection must not overwrite a newer one.
+- **Projection is broker-side.** The bridge plugin always sends one complete `NodeInspectionData`; `summary`/`tailwind`/`css` are pure functions over it (`bridge/project.ts`). Doing it in the plugin would create a second extraction path that drifts from the panel.
+- **The MCP server is stateful on purpose.** A fresh server per request cannot remember the `initialize` handshake, so `tools/call` is rejected as un-initialized. One session per client, keyed by `mcp-session-id`.
+- **HTTP only, never WebSocket.** Figma documents `http://localhost` in `devAllowedDomains` and never documents `ws://`. `figma-bridge-spike/` exists to settle that; until it does, HTTP is the only transport with evidence behind it.
+- **Name the MCP server `nodepeeker`, never `figma`.** Both Cursor and pi namespace tools by server name, so `figma` would collide with the official server's `figma_get_design_context`.
+- **`bridge/fake-plugin.mjs` is not optional tooling.** It is the only way to exercise the broker without Figma; the integration test drives it. Keep it in sync with `protocol.ts`.
+
 ---
 
 ## Key Directories
@@ -92,6 +103,7 @@ The `video` field is also the **gate on the Animation Export section interactivi
 | `src/ui/` | **UI thread.** React root (`App.tsx`, `main.tsx`), `components/`, `hooks/`, Tailwind entry `styles.css`, Vite entry `index.html`. |
 | `src/utils/` | **Shared pure logic**, runs in the iframe. Tailwind scale tables, the transpiler, and the pair-distance geometry (`distance.ts` — gaps, overlap, alignment, direction, `unionBounds`). No Figma and no DOM dependency. |
 | `src/types/` | `messages.ts` — the wire contract imported by both threads. |
+| `bridge/` | **Separate app, same repo.** A local MCP broker + a dev-only Figma plugin that feed design data to Cursor and pi.dev without Figma's official MCP quota. Its plugin has its **own `manifest.json`** — NodePeeker's `networkAccess: ["none"]` is never widened. See `bridge/README.md`. |
 | `tests/` | Vitest unit tests — `src/code/`, `src/utils/` (including the pure `distance.test.ts` geometry), and statically rendered UI components (`DistancePanel`, `CodeViewer`, …). |
 | `dist/` | Build output. **Gitignored** — never edit by hand. |
 | `docs/` | `installation-guide.md` (user-facing), `brainstorm-summary-*.md` (decision record), `journals/` (per-session engineering log). |
@@ -111,6 +123,11 @@ npm run watch:code     # esbuild --watch for sandbox iteration
 npm run dev:ui         # Vite dev server, root = src/ui
 npm test               # vitest run (single pass, never watch)
 npm run typecheck      # tsc --noEmit
+
+# Bridge (local MCP broker — separate app, same repo)
+npm run bridge:build   # esbuild bridge/broker.ts   → bridge/dist/broker.mjs
+npm run bridge:plugin  # esbuild bridge/plugin/code.ts → bridge/plugin/dist/code.js
+npm run bridge         # start the broker on 127.0.0.1:3939
 ```
 
 `npm run build` runs `build:code` **then** `build:ui`, and the order is load-bearing: `vite.config.ts` sets `emptyOutDir: false` so the UI build does not wipe `dist/code.js`.
@@ -217,6 +234,12 @@ catch { success = false; }
 | `src/ui/App.tsx` | **UI entry point.** Message listener, `downloadBlob`, component composition. |
 | `src/ui/components/CodeViewer.tsx` | Tab switching, `formatCss()` merge fallback, in-plugin shortcuts, and the SVG tab's preview board (`SvgPreview`) above the code box — the same lazily fetched markup, injected as elements. |
 | `manifest.json` | Figma manifest. `main` → `dist/code.js`, `ui` → `dist/index.html`. |
+| `bridge/protocol.ts` | Plugin ⇄ broker wire contract. No Figma, no Node. |
+| `bridge/state.ts` | Bridge cache, wire-level staleness guard, command queue + timeouts. Pure, no HTTP. |
+| `bridge/project.ts` | `NodeInspectionData` → `summary`/`tailwind`/`css`/`full`. Pure; reuses `transpileToTailwind`. |
+| `bridge/broker.ts` | The MCP server (Streamable HTTP) + plugin HTTP routes. Thin transport over the three above. |
+| `bridge/plugin/manifest.json` | The bridge plugin's **own** manifest — `devAllowedDomains` for localhost, `allowedDomains` still `["none"]`. |
+| `bridge/fake-plugin.mjs` | The bridge protocol in plain Node. This is why the broker is testable without Figma. |
 | `vite.config.ts` | `root: src/ui`, `emptyOutDir: false`, `viteSingleFile()`. |
 | `tsconfig.json` | Single config covering **both** `src/code` and `src/ui`. |
 | `vitest.config.ts` | `include: tests/**/*.{test,spec}.{ts,tsx}`, `globals: true`. |
@@ -235,7 +258,7 @@ catch { success = false; }
 - **Never add a network dependency.** No CDN imports, no web fonts, no external images. Runtime dependencies (`react`, `react-dom`, `lucide-react`) are inlined into the bundles.
 - **Never edit `dist/`** — gitignored and regenerated. `node_modules/` and `dist/` are the only ignored paths.
 - **`typeRoots` overrides the default array.** `figma` typings resolve only because `./node_modules/@figma` is listed. Never drop either entry.
-- **Caveat:** one `tsconfig` with DOM libs covers the sandbox too, so DOM globals (`document`, `window`) *typecheck* inside `src/code/` even though they do not exist at runtime. Types are not a safety net there — enforce it by review.
+- **Caveat:** one `tsconfig` with DOM libs covers the sandbox too, so DOM globals (`document`, `window`) *typecheck* inside `src/code/` even though they do not exist at runtime. Types are not a safety net there — enforce it by review. The bridge made this worse: `@types/node` is now installed (the broker is Node code), so `process`, `Buffer` and `node:*` imports also typecheck inside `src/code/`. A plugin sandbox reference to any of them compiles and then throws in Figma. The sandbox has **no `window`** either — `setInterval` is a bare global, so `window.setInterval(...)` is a runtime crash that typechecks.
 
 ---
 

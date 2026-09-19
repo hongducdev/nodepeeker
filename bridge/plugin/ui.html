@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>NodePeeker Bridge</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: var(--figma-color-bg, #fff);
+        --bg2: var(--figma-color-bg-secondary, #f5f5f5);
+        --text: var(--figma-color-text, #1a1a1a);
+        --muted: var(--figma-color-text-secondary, #6b6b6b);
+        --border: var(--figma-color-border, #e0e0e0);
+        --ok: #17864a;
+        --bad: #c22b2b;
+        --warn: #b26a00;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 12px;
+        font: 12px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg); color: var(--text);
+      }
+      h1 { font-size: 12px; margin: 0 0 10px; }
+      .badge {
+        display: inline-block; padding: 2px 7px; border-radius: 4px;
+        font: 600 10px/1.6 ui-monospace, Menlo, Consolas, monospace;
+        text-transform: uppercase; border: 1px solid currentColor;
+      }
+      .badge.connected { color: var(--ok); }
+      .badge.disconnected { color: var(--bad); }
+      .badge.connecting, .badge.needs-token { color: var(--warn); }
+      .meta { color: var(--muted); font-size: 11px; margin: 8px 0 10px; }
+      label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+      input {
+        width: 100%; padding: 6px 7px; border-radius: 5px; font: 11px ui-monospace, Menlo, Consolas, monospace;
+        background: var(--bg2); color: var(--text); border: 1px solid var(--border);
+      }
+      button {
+        margin-top: 7px; width: 100%; padding: 7px; border-radius: 5px; cursor: pointer;
+        font-size: 11px; font-weight: 600; background: var(--bg2); color: var(--text);
+        border: 1px solid var(--border);
+      }
+      button:hover { border-color: var(--muted); }
+      .note { margin-top: 9px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+      code { font-family: ui-monospace, Menlo, Consolas, monospace; }
+    </style>
+  </head>
+  <body>
+    <h1>NodePeeker Bridge <span class="badge" id="badge">…</span></h1>
+    <div class="meta" id="meta"></div>
+
+    <label for="token">Broker token</label>
+    <input id="token" type="password" placeholder="paste the token printed by the broker" />
+    <button id="save">Save &amp; connect</button>
+
+    <div class="note">
+      Run <code>npm run bridge</code> and copy the token it prints. It is stored in this file's
+      plugin storage, so you only paste it once.
+    </div>
+
+    <script>
+      const badge = document.getElementById('badge');
+      const meta = document.getElementById('meta');
+      const input = document.getElementById('token');
+
+      window.onmessage = (event) => {
+        const msg = event.data && event.data.pluginMessage;
+        if (!msg || msg.type !== 'STATUS') return;
+
+        badge.textContent = msg.state.replace('-', ' ');
+        badge.className = 'badge ' + msg.state;
+
+        const bits = [];
+        if (msg.fileName) bits.push('file: ' + msg.fileName);
+        if (typeof msg.seq === 'number') bits.push('push #' + msg.seq);
+        if (msg.detail) bits.push(msg.detail);
+        meta.textContent = bits.join(' · ');
+      };
+
+      document.getElementById('save').onclick = () => {
+        const token = input.value.trim();
+        if (!token) return;
+        parent.postMessage({ pluginMessage: { type: 'SET_TOKEN', token } }, '*');
+        input.value = '';
+      };
+    </script>
+  </body>
+</html>

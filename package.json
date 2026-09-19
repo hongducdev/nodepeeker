@@ -11,7 +11,10 @@
     "build:ui": "vite build",
     "build": "npm run build:code && npm run build:ui",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bridge:build": "esbuild bridge/broker.ts --bundle --platform=node --format=esm --target=es2022 --outfile=bridge/dist/broker.mjs --packages=external",
+    "bridge:plugin": "esbuild bridge/plugin/code.ts --bundle --outfile=bridge/plugin/dist/code.js --target=es2020",
+    "bridge": "node bridge/dist/broker.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.441.0",
@@ -20,6 +23,8 @@
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.100.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@types/node": "^22.20.4",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
@@ -30,6 +35,7 @@
     "typescript": "^5.5.4",
     "vite": "^7.0.0",
     "vite-plugin-singlefile": "^2.0.2",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "zod": "^4.6.5"
   }
 }
