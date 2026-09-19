@@ -125,9 +125,24 @@ export interface FileContext {
   fileName: string;
 }
 
+export type BridgeStatus =
+  | 'needs-token'
+  | 'connecting'
+  | 'connected'
+  | 'disconnected'
+  | 'disabled';
+
+export interface BridgeStatePayload {
+  state: BridgeStatus;
+  detail?: string | null;
+  seq?: number;
+  enabled: boolean;
+}
+
 export type PluginToUIMessage =
   | { type: 'SELECTION_CHANGE'; payload: SelectionState }
   | { type: 'FILE_CONTEXT'; payload: FileContext }
+  | { type: 'BRIDGE_STATUS'; payload: BridgeStatePayload }
   | {
       type: 'EXPORT_RESULT';
       payload:
@@ -145,4 +160,6 @@ export type UIToPluginMessage =
       action: 'copy' | 'download' | 'view';
     }
   | { type: 'REQUEST_VIDEO_EXPORT'; options: VideoExportOptions }
+  | { type: 'SET_BRIDGE_TOKEN'; token: string }
+  | { type: 'TOGGLE_BRIDGE'; enabled: boolean }
   | { type: 'INIT_REQUEST' };

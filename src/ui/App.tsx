@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import type {
+  BridgeStatePayload,
   FileContext,
   PluginToUIMessage,
   SelectionState,
@@ -16,10 +17,12 @@ import { QuickExport } from './components/QuickExport';
 import { VideoExport } from './components/VideoExport';
 import { EmptyState } from './components/EmptyState';
 import { DistancePanel } from './components/DistancePanel';
+import { BridgeSettingsModal } from './components/BridgeSettingsModal';
 import { Toast } from './components/Toast';
 import { useClipboard } from './hooks/useClipboard';
 import { useFigmaTheme } from './hooks/useFigmaTheme';
 import { videoExtension, videoMime } from '../utils/video-options';
+import { Bot } from 'lucide-react';
 
 const downloadBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -48,6 +51,11 @@ export const App: React.FC = () => {
   useFigmaTheme();
   const [selection, setSelection] = useState<SelectionState>({ kind: 'none', count: 0 });
   const [fileContext, setFileContext] = useState<FileContext>({ fileName: '' });
+  const [bridgeState, setBridgeState] = useState<BridgeStatePayload>({
+    state: 'needs-token',
+    enabled: true,
+  });
+  const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   // Kept apart from isExporting: a video encode runs for seconds, and a selection change
   // mid-encode (which fires an unrelated EXPORT_RESULT for the SVG view request) would
@@ -68,6 +76,20 @@ export const App: React.FC = () => {
   const handleExport = useCallback((msg: UIToPluginMessage) => {
     setIsExporting(true);
     parent.postMessage({ pluginMessage: msg }, '*');
+  }, []);
+
+  const handleSetBridgeToken = useCallback((token: string) => {
+    parent.postMessage(
+      { pluginMessage: { type: 'SET_BRIDGE_TOKEN', token } satisfies UIToPluginMessage },
+      '*'
+    );
+  }, []);
+
+  const handleToggleBridge = useCallback((enabled: boolean) => {
+    parent.postMessage(
+      { pluginMessage: { type: 'TOGGLE_BRIDGE', enabled } satisfies UIToPluginMessage },
+      '*'
+    );
   }, []);
 
   const handleVideoExport = useCallback((options: VideoExportOptions) => {
@@ -99,6 +121,11 @@ export const App: React.FC = () => {
 
       if (msg.type === 'FILE_CONTEXT') {
         setFileContext(msg.payload);
+        return;
+      }
+
+      if (msg.type === 'BRIDGE_STATUS') {
+        setBridgeState(msg.payload);
         return;
       }
 
@@ -169,14 +196,46 @@ export const App: React.FC = () => {
   }, [copy]);
 
   return (
-    <div className="flex flex-col h-screen w-full bg-base text-text select-none overflow-hidden font-sans">
+    <div className="flex flex-col h-screen w-full bg-base text-text select-none overflow-hidden font-sans relative">
+      {selection.kind !== 'single' && (
+        <div className="absolute top-2.5 right-2.5 z-30">
+          <button
+            onClick={() => setIsBridgeModalOpen(true)}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-surface0/90 border border-surface1 hover:border-surface2 text-[10px] font-mono text-subtext0 hover:text-text transition shadow-sm backdrop-blur-sm"
+            title={`NodePeeker Bridge: ${bridgeState.state}`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                bridgeState.state === 'connected'
+                  ? 'bg-green animate-pulse'
+                  : bridgeState.state === 'connecting' || bridgeState.state === 'needs-token'
+                    ? 'bg-peach'
+                    : bridgeState.state === 'disabled'
+                      ? 'bg-overlay0'
+                      : 'bg-maroon'
+              }`}
+            />
+            <Bot size={12} />
+            <span>MCP</span>
+          </button>
+        </div>
+      )}
+
       {selection.kind === 'none' ? (
-        <EmptyState count={selection.count} />
+        <EmptyState
+          count={selection.count}
+          bridgeStatus={bridgeState.state}
+          onOpenBridge={() => setIsBridgeModalOpen(true)}
+        />
       ) : selection.kind === 'pair' ? (
         <DistancePanel measurement={selection.measurement} onCopy={copy} />
       ) : (
         <>
-          <Header data={selection.data} />
+          <Header
+            data={selection.data}
+            bridgeStatus={bridgeState.state}
+            onOpenBridge={() => setIsBridgeModalOpen(true)}
+          />
           <NodeLink
             nodeId={selection.data.id}
             fileKey={fileContext.fileKey}
@@ -223,6 +282,14 @@ export const App: React.FC = () => {
           </div>
         </>
       )}
+
+      <BridgeSettingsModal
+        isOpen={isBridgeModalOpen}
+        onClose={() => setIsBridgeModalOpen(false)}
+        bridgeState={bridgeState}
+        onSetToken={handleSetBridgeToken}
+        onToggleEnabled={handleToggleBridge}
+      />
 
       <Toast message={copiedLabel ? `Copied ${copiedLabel}!` : null} />
     </div>

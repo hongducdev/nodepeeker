@@ -71,8 +71,8 @@ export interface PluginStatus {
   snapshotAgeMs: number | null;
 }
 
-/** A plugin is considered gone if it has not spoken for this long. */
-export const PLUGIN_TTL_MS = 5_000;
+/** A plugin is considered gone if it has not spoken for this long (30s accommodates background window throttling). */
+export const PLUGIN_TTL_MS = 30_000;
 
 /** How long the plugin waits between command polls. */
 export const POLL_INTERVAL_MS = 300;

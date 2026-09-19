@@ -13,7 +13,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "bridge:build": "esbuild bridge/broker.ts --bundle --platform=node --format=esm --target=es2022 --outfile=bridge/dist/broker.mjs --packages=external",
-    "bridge:plugin": "esbuild bridge/plugin/code.ts --bundle --outfile=bridge/plugin/dist/code.js --target=es2020",
+    "prebridge": "npm run bridge:build",
     "bridge": "node bridge/dist/broker.mjs"
   },
   "dependencies": {

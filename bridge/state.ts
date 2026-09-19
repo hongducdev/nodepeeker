@@ -117,7 +117,8 @@ export class BridgeState {
         ok: false,
         error: {
           code: 'PLUGIN_DISCONNECTED',
-          message: 'The NodePeeker Bridge plugin is not running. Open it from Plugins → Development.',
+          message:
+            'The NodePeeker plugin is not running or disconnected in Figma. Open it via Plugins → Development → NodePeeker and keep the plugin window open.',
         },
       });
     }

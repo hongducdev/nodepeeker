@@ -84,7 +84,7 @@ The `video` field is also the **gate on the Animation Export section interactivi
 
 ### Bridge (`bridge/`) architectural rules
 
-The bridge is a **separate app that happens to share the repo**: its own manifest, build scripts, and runtime. It never widens NodePeeker's `networkAccess: ["none"]`, and it reuses `src/code/extractors.ts` by relative import rather than forking it. A `bridge/` change must never alter what the shipped plugin can reach.
+NodePeeker includes an integrated **Bridge Service** (`src/code/bridge-service.ts`) connected to a local MCP broker (`bridge/`). It feeds design data to Cursor and pi.dev without Figma's official MCP quota. `manifest.json` configures `devAllowedDomains: ["http://localhost:3939"]` for development.
 
 - **The staleness guard lives on the wire too.** `BridgeState.pushSelection` drops any `seq` not newer than the last accepted one — the same guarantee `code.ts` makes in-process, for the same reason. A slow extraction from an old selection must not overwrite a newer one.
 - **Projection is broker-side.** The bridge plugin always sends one complete `NodeInspectionData`; `summary`/`tailwind`/`css` are pure functions over it (`bridge/project.ts`). Doing it in the plugin would create a second extraction path that drifts from the panel.
@@ -99,11 +99,11 @@ The bridge is a **separate app that happens to share the repo**: its own manifes
 
 | Path | Purpose |
 |---|---|
-| `src/code/` | **Sandbox thread.** Scene-graph reading, color math, message routing. Must stay DOM-free. |
+| `src/code/` | **Sandbox thread.** Scene-graph reading, color math, message routing, and integrated Bridge Service (`bridge-service.ts`). Must stay DOM-free. |
 | `src/ui/` | **UI thread.** React root (`App.tsx`, `main.tsx`), `components/`, `hooks/`, Tailwind entry `styles.css`, Vite entry `index.html`. |
 | `src/utils/` | **Shared pure logic**, runs in the iframe. Tailwind scale tables, the transpiler, and the pair-distance geometry (`distance.ts` — gaps, overlap, alignment, direction, `unionBounds`). No Figma and no DOM dependency. |
 | `src/types/` | `messages.ts` — the wire contract imported by both threads. |
-| `bridge/` | **Separate app, same repo.** A local MCP broker + a dev-only Figma plugin that feed design data to Cursor and pi.dev without Figma's official MCP quota. Its plugin has its **own `manifest.json`** — NodePeeker's `networkAccess: ["none"]` is never widened. See `bridge/README.md`. |
+| `bridge/` | **Local MCP broker.** A lightweight Node server that routes MCP tool calls from Cursor and pi.dev to the NodePeeker plugin. See `bridge/README.md`. |
 | `tests/` | Vitest unit tests — `src/code/`, `src/utils/` (including the pure `distance.test.ts` geometry), and statically rendered UI components (`DistancePanel`, `CodeViewer`, …). |
 | `dist/` | Build output. **Gitignored** — never edit by hand. |
 | `docs/` | `installation-guide.md` (user-facing), `brainstorm-summary-*.md` (decision record), `journals/` (per-session engineering log). |
@@ -124,10 +124,9 @@ npm run dev:ui         # Vite dev server, root = src/ui
 npm test               # vitest run (single pass, never watch)
 npm run typecheck      # tsc --noEmit
 
-# Bridge (local MCP broker — separate app, same repo)
+# Bridge (local MCP broker)
 npm run bridge:build   # esbuild bridge/broker.ts   → bridge/dist/broker.mjs
-npm run bridge:plugin  # esbuild bridge/plugin/code.ts → bridge/plugin/dist/code.js
-npm run bridge         # start the broker on 127.0.0.1:3939
+npm run bridge         # build & start the broker on 127.0.0.1:3939
 ```
 
 `npm run build` runs `build:code` **then** `build:ui`, and the order is load-bearing: `vite.config.ts` sets `emptyOutDir: false` so the UI build does not wipe `dist/code.js`.
@@ -238,7 +237,6 @@ catch { success = false; }
 | `bridge/state.ts` | Bridge cache, wire-level staleness guard, command queue + timeouts. Pure, no HTTP. |
 | `bridge/project.ts` | `NodeInspectionData` → `summary`/`tailwind`/`css`/`full`. Pure; reuses `transpileToTailwind`. |
 | `bridge/broker.ts` | The MCP server (Streamable HTTP) + plugin HTTP routes. Thin transport over the three above. |
-| `bridge/plugin/manifest.json` | The bridge plugin's **own** manifest — `devAllowedDomains` for localhost, `allowedDomains` still `["none"]`. |
 | `bridge/fake-plugin.mjs` | The bridge protocol in plain Node. This is why the broker is testable without Figma. |
 | `vite.config.ts` | `root: src/ui`, `emptyOutDir: false`, `viteSingleFile()`. |
 | `tsconfig.json` | Single config covering **both** `src/code` and `src/ui`. |

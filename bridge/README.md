@@ -15,18 +15,16 @@ bridge routes volume through the Plugin API instead, where there is no such cap.
 ## Quick start
 
 ```bash
-npm run bridge:build      # once, or after changing bridge/*.ts
-npm run bridge            # start the broker — prints the token
+npm run bridge            # builds and starts the broker — prints the token
 ```
 
 Then in Figma Desktop:
 
-1. **Plugins → Development → Import plugin from manifest…** → `bridge/plugin/manifest.json`
-2. Run **NodePeeker Bridge**
-3. Paste the token the broker printed → **Save & connect**
+1. Open **NodePeeker** plugin (import root `manifest.json` if first time).
+2. Click the **MCP (Bot)** icon on the header or the **MCP Bridge** card on the start screen.
+3. Paste the token the broker printed → **Save & connect**.
 
-The panel badge should read **CONNECTED**. Build the plugin first if you have not:
-`npm run bridge:plugin`.
+The badge will show **CONNECTED** with a pulsing green indicator. Token is saved in Figma client storage, so you only paste it once.
 
 Verify without Figma at any time — this drives the same protocol from plain Node:
 
@@ -121,7 +119,6 @@ Four decisions worth knowing before changing anything:
 | `state.ts` | Cache, staleness guard, command queue, timeouts. Pure — no HTTP. |
 | `project.ts` | `NodeInspectionData` → `summary` / `tailwind` / `css` / `full`. Pure. |
 | `broker.ts` | HTTP + MCP. Thin transport over the three above. |
-| `plugin/` | The Figma plugin. Reuses `src/code/extractors.ts`. |
 | `fake-plugin.mjs` | Same protocol in plain Node — the reason this is testable. |
 
 ---

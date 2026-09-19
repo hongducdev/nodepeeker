@@ -10,6 +10,7 @@
     { "command": "open", "name": "NodePeeker", "multipleSelection": true }
   ],
   "networkAccess": {
-    "allowedDomains": ["none"]
+    "allowedDomains": ["none"],
+    "devAllowedDomains": ["http://localhost:3939"]
   }
 }

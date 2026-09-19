@@ -5,6 +5,7 @@ import { clampFps } from '../utils/video-options';
 import { resolveVideoFrame, extractRawGifBytes } from './video-frame';
 import type { VideoScale, VideoQuality } from '../types/messages';
 import { measureDistance, type DistanceMeasurement } from '../utils/distance';
+import { bridgeService } from './bridge-service';
 
 figma.showUI(__html__, {
   width: 340,
@@ -52,6 +53,7 @@ async function handleSelectionChange() {
       type: 'SELECTION_CHANGE',
       payload: { kind: 'none', count: selection.length },
     });
+    void bridgeService.pushSelection('none', selection.length);
     return;
   }
 
@@ -62,6 +64,7 @@ async function handleSelectionChange() {
       type: 'SELECTION_CHANGE',
       payload: measurement ? { kind: 'pair', measurement } : { kind: 'none', count: 2 },
     });
+    void bridgeService.pushSelection('pair', 2);
     return;
   }
 
@@ -73,33 +76,36 @@ async function handleSelectionChange() {
       type: 'SELECTION_CHANGE',
       payload: { kind: 'single', data },
     });
+    void bridgeService.pushSelection('single', 1, data);
   } catch {
     if (seq !== selectionSequence) return;
+    const fallbackData = {
+      id: node.id,
+      name: node.name,
+      type: node.type,
+      css: {},
+      colors: [],
+      boxModel: {
+        width: 'width' in node ? node.width : 0,
+        height: 'height' in node ? node.height : 0,
+        x: 'x' in node ? node.x : 0,
+        y: 'y' in node ? node.y : 0,
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        gap: 0,
+        cornerRadius: 0,
+      },
+    };
     figma.ui.postMessage({
       type: 'SELECTION_CHANGE',
       payload: {
         kind: 'single',
-        data: {
-          id: node.id,
-          name: node.name,
-          type: node.type,
-          css: {},
-          colors: [],
-          boxModel: {
-            width: 'width' in node ? node.width : 0,
-            height: 'height' in node ? node.height : 0,
-            x: 'x' in node ? node.x : 0,
-            y: 'y' in node ? node.y : 0,
-            paddingTop: 0,
-            paddingRight: 0,
-            paddingBottom: 0,
-            paddingLeft: 0,
-            gap: 0,
-            cornerRadius: 0,
-          },
-        },
+        data: fallbackData,
       },
     });
+    void bridgeService.pushSelection('single', 1, fallbackData);
   }
 }
 
@@ -161,7 +167,18 @@ figma.ui.onmessage = async (msg: UIToPluginMessage) => {
       // resize optional
     }
     figma.ui.postMessage({ type: 'FILE_CONTEXT', ...readFileContext() });
+    figma.ui.postMessage({ type: 'BRIDGE_STATUS', payload: bridgeService.getStatus() });
     await handleSelectionChange();
+    return;
+  }
+
+  if (msg.type === 'SET_BRIDGE_TOKEN') {
+    await bridgeService.setToken(msg.token);
+    return;
+  }
+
+  if (msg.type === 'TOGGLE_BRIDGE') {
+    await bridgeService.toggleEnabled(msg.enabled);
     return;
   }
 
@@ -314,3 +331,4 @@ figma.ui.onmessage = async (msg: UIToPluginMessage) => {
 };
 
 handleSelectionChange();
+void bridgeService.boot();

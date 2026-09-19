@@ -519,3 +519,27 @@ describe('sandbox export protocol', () => {
     expect(posted[0]).toMatchObject({ type: 'EXPORT_ERROR', error: 'export unavailable' });
   });
 });
+
+describe('sandbox bridge protocol', () => {
+  it('posts the initial bridge status on INIT_REQUEST', async () => {
+    await send({ type: 'INIT_REQUEST' });
+
+    const bridgeStatus = posted.find((m) => m.type === 'BRIDGE_STATUS');
+    expect(bridgeStatus).toBeDefined();
+    expect(bridgeStatus?.payload).toMatchObject({
+      enabled: expect.any(Boolean),
+      state: expect.stringMatching(/needs-token|connecting|connected|disconnected|disabled/),
+    });
+  });
+
+  it('handles TOGGLE_BRIDGE message without throwing', async () => {
+    await send({ type: 'TOGGLE_BRIDGE', enabled: false });
+
+    const bridgeStatus = posted.find((m) => m.type === 'BRIDGE_STATUS' && (m.payload as { enabled: boolean }).enabled === false);
+    expect(bridgeStatus).toBeDefined();
+    expect(bridgeStatus?.payload).toMatchObject({
+      enabled: false,
+      state: 'disabled',
+    });
+  });
+});

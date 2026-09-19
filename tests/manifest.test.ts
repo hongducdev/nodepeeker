@@ -48,4 +48,8 @@ describe('manifest.json validation', () => {
     expect(manifest.main).toBe('dist/code.js');
     expect(manifest.ui).toBe('dist/index.html');
   });
+
+  it('allows localhost broker in development for Bridge MCP support', () => {
+    expect(manifest.networkAccess.devAllowedDomains).toContain('http://localhost:3939');
+  });
 });

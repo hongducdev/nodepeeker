@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { LayoutGrid, Type, Component, Shapes, Layers, Keyboard, X } from 'lucide-react';
-import { NodeInspectionData } from '../../types/messages';
+import { LayoutGrid, Type, Component, Shapes, Layers, Keyboard, Bot, X } from 'lucide-react';
+import { NodeInspectionData, BridgeStatus } from '../../types/messages';
 
 interface HeaderProps {
   data: NodeInspectionData;
+  bridgeStatus?: BridgeStatus;
+  onOpenBridge?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ data }) => {
+export const Header: React.FC<HeaderProps> = ({ data, bridgeStatus, onOpenBridge }) => {
   const { name, type, boxModel } = data;
   const [showShortcuts, setShowShortcuts] = useState(false);
 
@@ -64,6 +66,29 @@ export const Header: React.FC<HeaderProps> = ({ data }) => {
           >
             <Keyboard size={13} />
           </button>
+
+          {onOpenBridge && (
+            <button
+              onClick={onOpenBridge}
+              className={`p-1 rounded text-overlay0 hover:text-text hover:bg-surface0 transition flex items-center gap-1 ${
+                bridgeStatus === 'connected' ? 'text-green' : ''
+              }`}
+              title={`NodePeeker Bridge: ${bridgeStatus || 'disconnected'}`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  bridgeStatus === 'connected'
+                    ? 'bg-green animate-pulse'
+                    : bridgeStatus === 'connecting' || bridgeStatus === 'needs-token'
+                      ? 'bg-peach'
+                      : bridgeStatus === 'disabled'
+                        ? 'bg-overlay0'
+                        : 'bg-maroon'
+                }`}
+              />
+              <Bot size={13} />
+            </button>
+          )}
         </div>
       </div>
 

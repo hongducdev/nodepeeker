@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "nodepeeker": {
+      "url": "http://127.0.0.1:3939/mcp",
+      "headers": {
+        "X-Bridge-Token": "0R4_GbTaT7oH5Y7B4E-Sjn0dv4n-CDKT"
+      }
+    }
+  }
+}

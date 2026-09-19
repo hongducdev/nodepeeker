@@ -119,7 +119,7 @@ function buildMcpServer(): McpServer {
     {
       title: 'Bridge status',
       description:
-        'Check whether the NodePeeker Bridge plugin is connected and which Figma file is open. ' +
+        'Check whether the NodePeeker plugin is connected in Figma and which file is open. ' +
         'Call this first: every other tool fails with PLUGIN_DISCONNECTED if the plugin is not running.',
     },
     async () => {

@@ -1,11 +1,18 @@
 import React from 'react';
-import { MousePointerClick, Layers } from 'lucide-react';
+import { MousePointerClick, Layers, Bot } from 'lucide-react';
+import type { BridgeStatus } from '../../types/messages';
 
 interface EmptyStateProps {
   count?: number;
+  bridgeStatus?: BridgeStatus;
+  onOpenBridge?: () => void;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({ count = 0 }) => {
+export const EmptyState: React.FC<EmptyStateProps> = ({
+  count = 0,
+  bridgeStatus,
+  onOpenBridge,
+}) => {
   if (count > 1) {
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center h-[420px]">
@@ -60,6 +67,32 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ count = 0 }) => {
           Ctrl+Alt+P / ⌥⌘P
         </kbd>
       </div>
+
+      {onOpenBridge && (
+        <div className="w-full max-w-[240px] mt-2.5 p-2 rounded-lg bg-surface0/60 border border-surface1 text-[10px] flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                bridgeStatus === 'connected'
+                  ? 'bg-green animate-pulse'
+                  : bridgeStatus === 'connecting' || bridgeStatus === 'needs-token'
+                    ? 'bg-peach'
+                    : bridgeStatus === 'disabled'
+                      ? 'bg-overlay0'
+                      : 'bg-maroon'
+              }`}
+            />
+            <Bot size={12} className="text-overlay1" />
+            <span className="text-subtext0 font-medium">MCP Bridge</span>
+          </div>
+          <button
+            onClick={onOpenBridge}
+            className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-surface1 hover:bg-surface2 text-subtext1 transition"
+          >
+            {bridgeStatus === 'connected' ? 'CONNECTED' : 'SETTINGS'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
