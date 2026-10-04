@@ -116,7 +116,7 @@ const VIEW_ENUM = z.enum([
 ]);
 
 function buildMcpServer(): McpServer {
-  const server = new McpServer({ name: 'nodepeeker', version: '0.1.0' });
+  const server = new McpServer({ name: 'nodepeeker', version: '1.0.1' });
 
   const text = (payload: unknown) => ({
     content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],
