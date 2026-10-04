@@ -131,7 +131,8 @@ npm install
 | `npm run build:ui` | Bundles React UI into a single self-contained `dist/index.html`. |
 | `npm run bridge` | **Builds and starts the local MCP broker** on `127.0.0.1:3939`. |
 | `npm run bridge:build` | Compiles `bridge/broker.ts` into `bridge/dist/broker.mjs`. |
-| `npm test` | Runs the full Vitest unit & integration test suite (22 test files). |
+| `npm run update` | **One-click updater:** Pulls latest code, updates dependencies, and rebuilds plugin + broker. |
+| `npm test` | Runs the full Vitest unit & integration test suite (23 test files). |
 | `npm run typecheck` | Checks TypeScript types without emitting files (`tsc --noEmit`). |
 | `npm run watch:code` | Watches and rebuilds sandbox code on change. |
 | `npm run dev:ui` | Starts a Vite dev server for browser UI styling at `http://localhost:5173`. |

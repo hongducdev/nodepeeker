@@ -131,7 +131,8 @@ npm install
 | `npm run build:ui` | Đóng gói React UI thành 1 file duy nhất `dist/index.html`. |
 | `npm run bridge` | **Tự động build và chạy local MCP broker** tại `127.0.0.1:3939`. |
 | `npm run bridge:build` | Biên dịch `bridge/broker.ts` thành `bridge/dist/broker.mjs`. |
-| `npm test` | Chạy toàn bộ 22 file kiểm thử Vitest (222 test cases). |
+| `npm run update` | **Cập nhật 1-click:** Kéo code mới từ GitHub, cập nhật thư viện và build lại toàn bộ plugin + broker. |
+| `npm test` | Chạy toàn bộ 23 file kiểm thử Vitest (227 test cases). |
 | `npm run typecheck` | Kiểm tra lỗi kiểu TypeScript (`tsc --noEmit`). |
 | `npm run watch:code` | Tự động biên dịch lại sandbox khi sửa file. |
 | `npm run dev:ui` | Mở Vite dev server để phát triển UI trên trình duyệt tại `http://localhost:5173`. |

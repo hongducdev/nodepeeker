@@ -132,11 +132,19 @@ export type BridgeStatus =
   | 'disconnected'
   | 'disabled';
 
+export interface PluginUpdateInfo {
+  hasUpdate: boolean;
+  currentVersion: string;
+  latestVersion?: string;
+  releaseUrl?: string;
+}
+
 export interface BridgeStatePayload {
   state: BridgeStatus;
   detail?: string | null;
   seq?: number;
   enabled: boolean;
+  update?: PluginUpdateInfo | null;
 }
 
 export type PluginToUIMessage =

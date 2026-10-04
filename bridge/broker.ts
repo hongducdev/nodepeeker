@@ -23,6 +23,7 @@ import { z } from 'zod';
 
 import { BridgeState } from './state.js';
 import { projectView } from './project.js';
+import { checkUpdate, getCachedUpdateInfo } from './updater.js';
 import type { NodeInspectionData } from '../src/types/messages.js';
 import type { CommandResult, SelectionPush, ViewName } from './protocol.js';
 
@@ -67,12 +68,12 @@ const state = new BridgeState();
  * Only the plugin routes need CORS, and only they get it — the MCP transport manages its own
  * headers, and pre-setting them here would fight it.
  */
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
+const getCors = (origin?: string): Record<string, string> => ({
+  'Access-Control-Allow-Origin': origin || 'null',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-Bridge-Token',
   'Access-Control-Max-Age': '600',
-};
+});
 
 const readBody = (req: IncomingMessage): Promise<string> =>
   new Promise((resolve) => {
@@ -81,9 +82,17 @@ const readBody = (req: IncomingMessage): Promise<string> =>
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
   });
 
-const sendJson = (res: ServerResponse, status: number, payload: unknown): void => {
+function parseJson<T>(raw: string, fallback: T): T {
+  try {
+    return raw.trim() ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+const sendJson = (res: ServerResponse, status: number, payload: unknown, origin?: string): void => {
   const body = JSON.stringify(payload);
-  res.writeHead(status, { ...CORS, 'Content-Type': 'application/json; charset=utf-8' });
+  res.writeHead(status, { ...getCors(origin), 'Content-Type': 'application/json; charset=utf-8' });
   res.end(body);
 };
 
@@ -215,7 +224,8 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   const rawSessionId = req.headers['mcp-session-id'];
   const sessionId = Array.isArray(rawSessionId) ? rawSessionId[0] : rawSessionId;
-  const body = req.method === 'POST' ? JSON.parse((await readBody(req)) || '{}') : undefined;
+  const rawBody = req.method === 'POST' ? await readBody(req) : '';
+  const body = req.method === 'POST' ? parseJson<Record<string, unknown>>(rawBody, {}) : undefined;
 
   // An established session routes to the transport that owns it. Sessions are stateful on
   // purpose: a fresh server per request cannot remember the `initialize` handshake, so
@@ -256,29 +266,36 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse, url: URL): P
 // ---- plugin routes ----------------------------------------------------------
 
 async function handlePlugin(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+  const origin = req.headers.origin as string | undefined;
+
   if (!authorized(req, url)) {
-    sendJson(res, 401, { ok: false, error: 'missing or bad X-Bridge-Token' });
+    sendJson(res, 401, { ok: false, error: 'missing or bad X-Bridge-Token' }, origin);
     return;
   }
 
   switch (`${req.method} ${url.pathname}`) {
     case 'POST /hello': {
-      const body = JSON.parse((await readBody(req)) || '{}');
+      const body = parseJson<Record<string, unknown>>(await readBody(req), {});
       state.registerPlugin({
-        fileName: body.fileName ?? null,
-        fileKey: body.fileKey ?? null,
-        capabilities: body.capabilities ?? [],
+        fileName: typeof body.fileName === 'string' ? body.fileName : null,
+        fileKey: typeof body.fileKey === 'string' ? body.fileKey : null,
+        capabilities: Array.isArray(body.capabilities) ? (body.capabilities as string[]) : [],
       });
       log(`plugin registered · file="${body.fileName ?? 'unknown'}"`);
-      sendJson(res, 200, { ok: true, pollIntervalMs: 300 });
+      sendJson(res, 200, { ok: true, pollIntervalMs: 300, update: getCachedUpdateInfo() }, origin);
       return;
     }
 
     case 'POST /push': {
-      const push = JSON.parse((await readBody(req)) || '{}') as SelectionPush;
-      const accepted = state.pushSelection(push);
+      const push = parseJson<SelectionPush>(await readBody(req), {
+        seq: -1,
+        kind: 'none',
+        count: 0,
+        pushedAt: Date.now(),
+      });
+      const accepted = push.seq >= 0 && state.pushSelection(push);
       if (!accepted) log(`dropped stale push seq=${push.seq}`);
-      sendJson(res, 200, { ok: true, accepted });
+      sendJson(res, 200, { ok: true, accepted }, origin);
       return;
     }
 
@@ -286,20 +303,23 @@ async function handlePlugin(req: IncomingMessage, res: ServerResponse, url: URL)
       state.touch();
       const commands = state.takeCommands();
       if (commands.length) log(`dispatching ${commands.map((c) => c.type).join(', ')}`);
-      sendJson(res, 200, commands);
+      sendJson(res, 200, commands, origin);
       return;
     }
 
     case 'POST /result': {
-      const result = JSON.parse((await readBody(req)) || '{}') as CommandResult;
-      const matched = state.settle(result);
+      const result = parseJson<CommandResult>(await readBody(req), {
+        id: '',
+        ok: false,
+      });
+      const matched = Boolean(result.id) && state.settle(result);
       if (!matched) log(`late/unknown result ${result.id}`);
-      sendJson(res, 200, { ok: true, matched });
+      sendJson(res, 200, { ok: true, matched }, origin);
       return;
     }
 
     default:
-      sendJson(res, 404, { ok: false, error: `no route for ${req.method} ${url.pathname}` });
+      sendJson(res, 404, { ok: false, error: `no route for ${req.method} ${url.pathname}` }, origin);
   }
 }
 
@@ -311,13 +331,13 @@ const server = createServer((req, res) => {
   const url = new URL(req.url ?? '/', `http://${HOST}:${PORT}`);
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, CORS);
+    res.writeHead(204, getCors(req.headers.origin as string));
     res.end();
     return;
   }
 
   if (url.pathname === '/ping') {
-    sendJson(res, 200, { ok: true, service: 'nodepeeker-bridge', ts: Date.now() });
+    sendJson(res, 200, { ok: true, service: 'nodepeeker-bridge', ts: Date.now(), update: getCachedUpdateInfo() });
     return;
   }
 
@@ -339,6 +359,13 @@ server.listen(PORT, HOST, () => {
   console.log(`    { "url": "http://${HOST}:${PORT}/mcp",`);
   console.log(`      "headers": { "X-Bridge-Token": "${TOKEN}" } }`);
   console.log('');
+
+  void checkUpdate().then((info) => {
+    if (info.hasUpdate) {
+      console.log(`  📢 Update available: v${info.currentVersion} → v${info.latestVersion}`);
+      console.log(`     Run 'npm run update' to update NodePeeker.\n`);
+    }
+  });
 });
 
 const shutdown = () => {

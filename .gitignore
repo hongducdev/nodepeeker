@@ -8,3 +8,4 @@ yarn-error.log*
 # Bridge broker shared secret — generated on first run, never committed
 .token
 .cursor/
+.vitest/

@@ -8,7 +8,7 @@
  */
 
 import { extractNodeData } from './extractors';
-import type { BridgeStatus, BridgeStatePayload, NodeInspectionData } from '../types/messages';
+import type { BridgeStatus, BridgeStatePayload, NodeInspectionData, PluginUpdateInfo } from '../types/messages';
 import type { CommandResult, PluginCommand, PluginHello, SelectionPush } from '../../bridge/protocol';
 import { POLL_INTERVAL_MS } from '../../bridge/protocol';
 
@@ -24,6 +24,7 @@ let connected = false;
 let lastError: string | null = null;
 let consecutiveFailures = 0;
 let isPolling = false;
+let updateInfo: PluginUpdateInfo | null = null;
 
 let helloTimer: ReturnType<typeof setInterval> | null = null;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -62,6 +63,7 @@ function notifyUi(state: BridgeStatus, detail?: string | null): void {
         detail: detail ?? null,
         seq,
         enabled,
+        update: updateInfo,
       },
     });
   } catch {
@@ -81,7 +83,10 @@ async function hello(): Promise<boolean> {
   };
 
   try {
-    await post('/hello', payload);
+    const res = (await post('/hello', payload)) as { ok?: boolean; update?: PluginUpdateInfo } | null;
+    if (res && res.update && typeof res.update.hasUpdate === 'boolean') {
+      updateInfo = res.update;
+    }
     if (!connected) {
       connected = true;
       consecutiveFailures = 0;
@@ -252,6 +257,7 @@ export const bridgeService = {
       detail: lastError,
       seq,
       enabled,
+      update: updateInfo,
     };
   },
 

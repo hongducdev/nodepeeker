@@ -201,8 +201,12 @@ export const App: React.FC = () => {
         <div className="absolute top-2.5 right-2.5 z-30">
           <button
             onClick={() => setIsBridgeModalOpen(true)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-surface0/90 border border-surface1 hover:border-surface2 text-[10px] font-mono text-subtext0 hover:text-text transition shadow-sm backdrop-blur-sm"
-            title={`NodePeeker Bridge: ${bridgeState.state}`}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-surface0/90 border border-surface1 hover:border-surface2 text-[10px] font-mono text-subtext0 hover:text-text transition shadow-sm backdrop-blur-sm relative"
+            title={
+              bridgeState.update?.hasUpdate
+                ? 'NodePeeker update available! Click to view.'
+                : `NodePeeker Bridge: ${bridgeState.state}`
+            }
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
@@ -217,6 +221,9 @@ export const App: React.FC = () => {
             />
             <Bot size={12} />
             <span>MCP</span>
+            {bridgeState.update?.hasUpdate && (
+              <span className="w-1.5 h-1.5 rounded-full bg-peach animate-pulse" />
+            )}
           </button>
         </div>
       )}
@@ -234,6 +241,7 @@ export const App: React.FC = () => {
           <Header
             data={selection.data}
             bridgeStatus={bridgeState.state}
+            hasUpdate={Boolean(bridgeState.update?.hasUpdate)}
             onOpenBridge={() => setIsBridgeModalOpen(true)}
           />
           <NodeLink

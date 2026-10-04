@@ -5,10 +5,11 @@ import { NodeInspectionData, BridgeStatus } from '../../types/messages';
 interface HeaderProps {
   data: NodeInspectionData;
   bridgeStatus?: BridgeStatus;
+  hasUpdate?: boolean;
   onOpenBridge?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ data, bridgeStatus, onOpenBridge }) => {
+export const Header: React.FC<HeaderProps> = ({ data, bridgeStatus, hasUpdate, onOpenBridge }) => {
   const { name, type, boxModel } = data;
   const [showShortcuts, setShowShortcuts] = useState(false);
 
@@ -70,10 +71,14 @@ export const Header: React.FC<HeaderProps> = ({ data, bridgeStatus, onOpenBridge
           {onOpenBridge && (
             <button
               onClick={onOpenBridge}
-              className={`p-1 rounded text-overlay0 hover:text-text hover:bg-surface0 transition flex items-center gap-1 ${
+              className={`p-1 rounded text-overlay0 hover:text-text hover:bg-surface0 transition flex items-center gap-1 relative ${
                 bridgeStatus === 'connected' ? 'text-green' : ''
               }`}
-              title={`NodePeeker Bridge: ${bridgeStatus || 'disconnected'}`}
+              title={
+                hasUpdate
+                  ? 'NodePeeker update available! Click to view.'
+                  : `NodePeeker Bridge: ${bridgeStatus || 'disconnected'}`
+              }
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
@@ -87,6 +92,9 @@ export const Header: React.FC<HeaderProps> = ({ data, bridgeStatus, onOpenBridge
                 }`}
               />
               <Bot size={13} />
+              {hasUpdate && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-peach animate-pulse" />
+              )}
             </button>
           )}
         </div>

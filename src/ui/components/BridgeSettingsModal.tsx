@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Radio, Check, Power } from 'lucide-react';
+import { X, Radio, Check, Power, Sparkles, Copy } from 'lucide-react';
 import type { BridgeStatePayload } from '../../types/messages';
 
 interface BridgeSettingsModalProps {
@@ -19,6 +19,7 @@ export const BridgeSettingsModal: React.FC<BridgeSettingsModalProps> = ({
 }) => {
   const [tokenInput, setTokenInput] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const [copiedCmd, setCopiedCmd] = useState(false);
 
   useEffect(() => {
     if (isSaved) {
@@ -27,7 +28,23 @@ export const BridgeSettingsModal: React.FC<BridgeSettingsModalProps> = ({
     }
   }, [isSaved]);
 
+  useEffect(() => {
+    if (copiedCmd) {
+      const timer = setTimeout(() => setCopiedCmd(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [copiedCmd]);
+
   if (!isOpen) return null;
+
+  const handleCopyCmd = () => {
+    try {
+      void navigator.clipboard.writeText('npm run update');
+      setCopiedCmd(true);
+    } catch {
+      // fallback
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +137,35 @@ export const BridgeSettingsModal: React.FC<BridgeSettingsModalProps> = ({
               <span>{bridgeState.enabled ? 'Enabled' : 'Disabled'}</span>
             </button>
           </div>
+
+          {/* Update Available Banner */}
+          {bridgeState.update?.hasUpdate && (
+            <div className="p-2.5 rounded-lg bg-peach/15 border border-peach/30 space-y-2 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-peach font-semibold text-[11px]">
+                  <Sparkles size={13} className="text-peach animate-pulse" />
+                  <span>Update Available</span>
+                </div>
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-peach/20 text-peach font-bold">
+                  v{bridgeState.update.latestVersion}
+                </span>
+              </div>
+              <p className="text-[10px] text-subtext0 leading-normal">
+                New version available (current: v{bridgeState.update.currentVersion}). Run the update command in terminal:
+              </p>
+              <div className="flex items-center justify-between bg-surface0/90 rounded px-2 py-1 border border-surface1">
+                <code className="font-mono text-[10px] text-blue select-text">npm run update</code>
+                <button
+                  type="button"
+                  onClick={handleCopyCmd}
+                  className="p-1 text-overlay1 hover:text-text transition"
+                  title="Copy update command"
+                >
+                  {copiedCmd ? <Check size={11} className="text-green" /> : <Copy size={11} />}
+                </button>
+              </div>
+            </div>
+          )}
 
           {bridgeState.detail && (
             <p className="text-[10px] text-maroon font-mono px-1 truncate">

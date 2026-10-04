@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "bridge:build": "esbuild bridge/broker.ts --bundle --platform=node --format=esm --target=es2022 --outfile=bridge/dist/broker.mjs --packages=external",
     "prebridge": "npm run bridge:build",
-    "bridge": "node bridge/dist/broker.mjs"
+    "bridge": "node bridge/dist/broker.mjs",
+    "update": "node scripts/update.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.441.0",
