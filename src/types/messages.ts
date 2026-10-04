@@ -57,6 +57,14 @@ export interface ShadowData {
   opacity: number;
 }
 
+export interface BoundVariableToken {
+  id: string;
+  field: string;
+  variableName: string;
+  cssVariable: string;
+  resolvedValue?: string | number;
+}
+
 export interface NodeInspectionData {
   id: string;
   name: string;
@@ -78,6 +86,8 @@ export interface NodeInspectionData {
   sizing?: { hugHorizontal: boolean; hugVertical: boolean };
   /** Child of an auto-layout frame pinned with `layoutPositioning: 'ABSOLUTE'`. */
   position?: { absolute: boolean };
+  /** Bound Figma Variables / Design Tokens for fills, strokes, dimensions, padding, radius, etc. */
+  variables?: BoundVariableToken[];
   /** Present only when the selection resolves to a frame Figma can actually encode: a frame
    *  placed directly on a page that carries Motion/timeline animation. Prototype-only Smart
    *  Animate flows are not resolvable by `exportAsync`, so `reactions` is deliberately not a

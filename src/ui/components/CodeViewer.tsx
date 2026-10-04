@@ -7,7 +7,7 @@ import {
   transpileToSwiftUI,
   transpileToCompose,
 } from '../../utils/transpilers';
-import { Code2, Copy, Check, ChevronDown } from 'lucide-react';
+import { Code2, Copy, Check, ChevronDown, Coins } from 'lucide-react';
 import { CodeHighlighter } from './CodeHighlighter';
 import { SvgPreview } from './SvgPreview';
 
@@ -52,6 +52,42 @@ const TAB_META: Record<
   svg: { label: 'SVG', digit: '3', letter: 's', copyLabel: 'SVG markup' },
 };
 
+function substituteToken(prop: string, val: string, varMap: Map<string, string>): string {
+  if (varMap.size === 0) return `${prop}: ${val};`;
+
+  if ((prop === 'background-color' || prop === 'background') && varMap.has('fill')) {
+    return `${prop}: ${varMap.get('fill')}; /* ${val} */`;
+  }
+  if (prop === 'border-color' && varMap.has('stroke')) {
+    return `${prop}: ${varMap.get('stroke')}; /* ${val} */`;
+  }
+  if (prop === 'border' && varMap.has('stroke')) {
+    const token = varMap.get('stroke')!;
+    const sub = val.replace(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/, token);
+    return `${prop}: ${sub}; /* ${val} */`;
+  }
+  if (prop === 'width' && varMap.has('width')) {
+    return `width: ${varMap.get('width')}; /* ${val} */`;
+  }
+  if (prop === 'height' && varMap.has('height')) {
+    return `height: ${varMap.get('height')}; /* ${val} */`;
+  }
+  if (prop === 'padding' && varMap.has('padding')) {
+    return `padding: ${varMap.get('padding')}; /* ${val} */`;
+  }
+  if (prop === 'gap' && varMap.has('itemSpacing')) {
+    return `gap: ${varMap.get('itemSpacing')}; /* ${val} */`;
+  }
+  if (prop === 'border-radius' && varMap.has('cornerRadius')) {
+    return `border-radius: ${varMap.get('cornerRadius')}; /* ${val} */`;
+  }
+  if (prop === 'opacity' && varMap.has('opacity')) {
+    return `opacity: ${varMap.get('opacity')}; /* ${val} */`;
+  }
+
+  return `${prop}: ${val};`;
+}
+
 export const CodeViewer: React.FC<CodeViewerProps> = ({
   data,
   svg,
@@ -62,8 +98,10 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
 }) => {
   // Default to CSS per user request
   const [tab, setTab] = useState<CodeTab>('css');
+  const [useTokens, setUseTokens] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const hasVariables = Boolean(data.variables && data.variables.length > 0);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -96,7 +134,17 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
     if (entries.length === 0) {
       return `/* Dimensions */\nwidth: ${data.boxModel.width}px;\nheight: ${data.boxModel.height}px;`;
     }
-    return entries.map(([prop, val]) => `${prop}: ${val};`).join('\n');
+
+    const varMap = new Map<string, string>();
+    if (useTokens && data.variables && data.variables.length > 0) {
+      for (const v of data.variables) {
+        varMap.set(v.field, v.cssVariable);
+      }
+    }
+
+    return entries
+      .map(([prop, val]) => (useTokens ? substituteToken(prop, val, varMap) : `${prop}: ${val};`))
+      .join('\n');
   };
 
   const codeByTab: Record<CodeTab, string> = {
@@ -259,24 +307,42 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={() => onCopy(activeCode, TAB_META[tab].copyLabel)}
-          disabled={!activeCode}
-          className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded bg-surface0 hover:bg-surface1 text-subtext1 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-          title="Copy to clipboard (Ctrl+C / Cmd+C)"
-        >
-          {isCopied ? (
-            <>
-              <Check size={11} className="text-green" />
-              <span className="text-green">{tab === 'svg' ? 'Copied SVG' : 'Copied'}</span>
-            </>
-          ) : (
-            <>
-              <Copy size={11} />
-              <span>{tab === 'svg' ? 'Copy SVG' : 'Copy'}</span>
-            </>
+        <div className="flex items-center gap-1 shrink-0">
+          {hasVariables && (
+            <button
+              type="button"
+              onClick={() => setUseTokens(!useTokens)}
+              className={`flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded transition ${
+                useTokens
+                  ? 'bg-peach/20 text-peach border border-peach/40 font-semibold'
+                  : 'bg-surface0 text-subtext0 hover:text-text hover:bg-surface1 border border-surface1/60'
+              }`}
+              title={useTokens ? 'Showing project tokens (click for raw values)' : 'Show project variables / tokens'}
+            >
+              <Coins size={11} className={useTokens ? 'text-peach' : 'text-overlay1'} />
+              <span>Tokens</span>
+            </button>
           )}
-        </button>
+
+          <button
+            onClick={() => onCopy(activeCode, TAB_META[tab].copyLabel)}
+            disabled={!activeCode}
+            className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded bg-surface0 hover:bg-surface1 text-subtext1 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            title="Copy to clipboard (Ctrl+C / Cmd+C)"
+          >
+            {isCopied ? (
+              <>
+                <Check size={11} className="text-green" />
+                <span className="text-green">{tab === 'svg' ? 'Copied SVG' : 'Copied'}</span>
+              </>
+            ) : (
+              <>
+                <Copy size={11} />
+                <span>{tab === 'svg' ? 'Copy SVG' : 'Copy'}</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* The rendering sits above the markup it was produced from: on the SVG tab most of the
@@ -290,6 +356,26 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
           <CodeHighlighter code={activeCode} language={tab} />
         )}
       </div>
+
+      {hasVariables && (
+        <div className="mt-1.5 pt-1.5 border-t border-surface0/60 flex flex-wrap items-center gap-1">
+          <span className="text-[9px] font-mono uppercase text-overlay1 shrink-0">Tokens:</span>
+          {data.variables!.map((v, i) => (
+            <button
+              key={`${v.id}-${i}`}
+              type="button"
+              onClick={() => onCopy(v.cssVariable, v.variableName)}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface0/80 hover:bg-surface1 text-[9px] font-mono text-subtext0 hover:text-text transition border border-surface1/60"
+              title={`Click to copy ${v.cssVariable} (${v.variableName})`}
+            >
+              <span className="text-peach font-medium">{v.cssVariable}</span>
+              {v.variableName && (
+                <span className="text-overlay1 font-sans text-[8px]">({v.variableName})</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

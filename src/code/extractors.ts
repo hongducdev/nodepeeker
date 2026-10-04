@@ -1,6 +1,113 @@
-import { BoxModelData, NodeInspectionData, TypographyData, BorderData, ShadowData } from '../types/messages';
+import { BoxModelData, NodeInspectionData, TypographyData, BorderData, ShadowData, BoundVariableToken } from '../types/messages';
 import { extractColorsFromNode, rgbToHex, toHex8 } from './color-utils';
 import { resolveVideoTarget } from './video-frame';
+
+export function toCssVariableName(name: string): string {
+  const clean = name
+    .trim()
+    .toLowerCase()
+    .replace(/[/\\_\s]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `--${clean || 'token'}`;
+}
+
+async function resolveVariable(alias: VariableAlias | undefined): Promise<Variable | null> {
+  if (!alias || !alias.id) return null;
+  try {
+    if (typeof figma.variables?.getVariableByIdAsync === 'function') {
+      return await figma.variables.getVariableByIdAsync(alias.id);
+    }
+    if (typeof figma.variables?.getVariableById === 'function') {
+      return figma.variables.getVariableById(alias.id);
+    }
+  } catch {
+    // fallback
+  }
+  return null;
+}
+
+export async function extractBoundVariables(node: SceneNode): Promise<BoundVariableToken[]> {
+  const tokens: BoundVariableToken[] = [];
+  const cache = new Map<string, Variable | null>();
+
+  const getVar = async (alias: VariableAlias | undefined): Promise<Variable | null> => {
+    if (!alias || !alias.id) return null;
+    if (cache.has(alias.id)) return cache.get(alias.id) ?? null;
+    const v = await resolveVariable(alias);
+    cache.set(alias.id, v);
+    return v;
+  };
+
+  const addToken = async (field: string, alias: VariableAlias | undefined, resolvedValue?: string | number) => {
+    if (!alias || !alias.id) return;
+    const v = await getVar(alias);
+    if (!v) return;
+
+    // Check codeSyntax.WEB first per Advisor recommendation
+    let cssVar = '';
+    if (v.codeSyntax && typeof v.codeSyntax.WEB === 'string' && v.codeSyntax.WEB.trim()) {
+      const syntax = v.codeSyntax.WEB.trim();
+      cssVar = syntax.startsWith('var(') ? syntax : `var(${syntax})`;
+    } else {
+      cssVar = `var(${toCssVariableName(v.name)})`;
+    }
+
+    tokens.push({
+      id: v.id,
+      field,
+      variableName: v.name,
+      cssVariable: cssVar,
+      resolvedValue,
+    });
+  };
+
+  // 1. Check node.boundVariables
+  const bv = 'boundVariables' in node ? (node.boundVariables as Record<string, unknown> | undefined) : undefined;
+  if (bv) {
+    const scalarFields = [
+      'width', 'height', 'itemSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+      'cornerRadius', 'topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius',
+      'strokeWeight', 'opacity', 'fontSize'
+    ];
+    for (const f of scalarFields) {
+      if (bv[f]) {
+        await addToken(f, bv[f] as VariableAlias);
+      }
+    }
+
+    if (Array.isArray(bv.fills) && bv.fills.length > 0) {
+      for (const alias of bv.fills) {
+        if (alias) await addToken('fill', alias as VariableAlias);
+      }
+    }
+
+    if (Array.isArray(bv.strokes) && bv.strokes.length > 0) {
+      for (const alias of bv.strokes) {
+        if (alias) await addToken('stroke', alias as VariableAlias);
+      }
+    }
+  }
+
+  // 2. Also check paints directly (SolidPaint.boundVariables.color)
+  if ('fills' in node && Array.isArray(node.fills)) {
+    for (const p of node.fills) {
+      if (p.visible !== false && p.type === 'SOLID' && p.boundVariables?.color) {
+        await addToken('fill', p.boundVariables.color);
+      }
+    }
+  }
+  if ('strokes' in node && Array.isArray(node.strokes)) {
+    for (const p of node.strokes) {
+      if (p.visible !== false && p.type === 'SOLID' && p.boundVariables?.color) {
+        await addToken('stroke', p.boundVariables.color);
+      }
+    }
+  }
+
+  return tokens;
+}
 
 export async function extractNodeData(node: SceneNode): Promise<NodeInspectionData> {
   const width = Math.round(('width' in node ? node.width : 0) * 100) / 100;
@@ -189,6 +296,7 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
     : undefined;
 
   const colors = extractColorsFromNode(node);
+  const variables = await extractBoundVariables(node);
   let border: BorderData | undefined;
   if ('strokes' in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
     const visibleStroke = node.strokes.find((s) => s.visible !== false);
@@ -306,5 +414,6 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
     sizing,
     position,
     video,
+    variables: variables.length > 0 ? variables : undefined,
   };
 }
