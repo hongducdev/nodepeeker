@@ -35,16 +35,21 @@
 
 ## 🚀 Tính năng nổi bật
 
-### 💻 Trình soi mã nguồn (Web & Mobile)
-- **Hỗ trợ đa nền tảng Web & Mobile:** Dễ dàng chuyển đổi giữa **Pure CSS**, **Tailwind CSS**, **React Native (StyleSheet)**, **Flutter (Dart BoxDecoration / TextStyle)**, **iOS (SwiftUI modifiers)**, và **Android (Jetpack Compose Modifier)**.
-- **Tô màu cú pháp (Syntax Highlighting):** Phân loại và tô màu theo thời gian thực cho thuộc tính (properties), giá trị (values), đơn vị (units), mã màu hex và các nhóm tiện ích Tailwind / Mobile.
-- **Bộ biên dịch mã Mobile chuyên dụng:**
-  - **React Native:** Sinh mã `StyleSheet.create({ container: { ... } })` chuẩn xác với layout Flexbox, kích thước và padding.
-  - **Flutter:** Sinh `Container` kèm `BoxDecoration` (`color: const Color(0x...)`, `borderRadius`, `BoxShadow`) hoặc `TextStyle`.
-  - **SwiftUI:** Sinh chuỗi modifiers (.frame(), .padding(), .background(), .cornerRadius()).
-  - **Jetpack Compose:** Sinh chuỗi Modifier (.size(), .padding(), .background(), RoundedCornerShape()).
+### 💻 Trình soi mã nguồn (Web & Mobile tích hợp Design Tokens)
+- **Hỗ trợ chuyên sâu Web & Mobile:** Dễ dàng chuyển đổi giữa **Pure CSS** cho web, và các nền tảng Mobile: **React Native (StyleSheet)**, **Flutter (Dart BoxDecoration / TextStyle)**, **iOS (SwiftUI modifiers)**, và **Android (Jetpack Compose Modifier)**.
+- **Tự động áp dụng Figma Variables (Design Tokens):**
+  - Khi layer được gán biến Figma (hoặc TextStyle từ các UI kit như Material 3), NodePeeker **tự động thay thế** bằng biến tương ứng:
+    - **CSS:** `background-color: var(--color-bg); /* #1e1e2e */`
+    - **React Native:** `backgroundColor: tokens.colorBg, // '#1e1e2e'`
+    - **Flutter:** `color: AppColors.colorBg,` và `fontSize: AppTypography.bodyLargeSize,`
+    - **SwiftUI:** `.background(Color("color/bg"))` và `.cornerRadius(Theme.radiusLg)`
+    - **Jetpack Compose:** `.background(color = AppColors.ColorBg)`
+  - **Lọc sạch tiền tố thư mục Figma:** Tự động loại bỏ các tiền tố dài dòng (ví dụ `Static/Body Large/Size` ➔ `bodyLargeSize`, `Schemes/On Surface` ➔ `onSurface`).
+  - **Mặc định hiển thị Biến:** Biến luôn được áp dụng ngay khi mở plugin mà không cần bấm nút bật. Bạn có thể bấm nút **Tokens** trên thanh công cụ để chuyển sang xem số thô bất cứ lúc nào.
+  - **Thanh Token 1 dòng tinh gọn:** Hàng danh sách token ở chân khung code xếp trên 1 dòng duy nhất có thể cuộn ngang; click vào bất kỳ viên token nào để copy nhanh.
+- **Tự động ghi nhớ nền tảng Dev:** Tự động ghi nhớ bạn là Web dev (CSS) hay Mobile dev (React Native, Flutter, SwiftUI, Compose). Mọi lần mở sau plugin sẽ tự động mở đúng framework ưa thích của bạn!
 - **Mã SVG & Xem trước trực quan:** Chuyển sang tab SVG để xem mã vector thô hoặc xem trước đồ họa trên bảng nền caro (checkerboard) trước khi sao chép hoặc tải về máy.
-- **Phím tắt trong Plugin:** Nhấn phím `1` hoặc `C` cho CSS, `2` hoặc `T` cho Tailwind, `3` hoặc `S` cho SVG, và `Ctrl+C` / `Cmd+C` để sao chép nhanh khối mã đang chọn.
+- **Phím tắt trong Plugin:** Nhấn phím `1` hoặc `C` cho CSS, `2` hoặc `R` cho React Native, `3` hoặc `S` cho SVG, và `Ctrl+C` / `Cmd+C` để sao chép nhanh khối mã đang chọn.
 
 ### 🎨 Sao chép màu siêu nhanh (Định dạng Web & Mobile)
 - **Tự động nhận diện bảng màu:** Trích xuất toàn bộ màu nền (fills) và viền (strokes) được áp dụng trên layer đang chọn và các layer con trực tiếp.

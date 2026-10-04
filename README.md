@@ -35,17 +35,21 @@
 
 ## 🚀 Features
 
-### 💻 Inspect Code Viewer (Web & Mobile)
-- **Web & Mobile First:** Seamlessly switch between **Pure CSS**, **Tailwind CSS**, **React Native (StyleSheet)**, **Flutter (Dart BoxDecoration / TextStyle)**, **iOS (SwiftUI modifiers)**, and **Android (Jetpack Compose Modifier)**.
-- **Syntax Highlighting:** Real-time token highlighting for properties, values, units, hex colors, and Tailwind utility categories.
-- **Tailwind CSS Generation:** Easily toggle to Tailwind utility classes with color-coded token badges. Real values are emitted rather than arbitrary presets: custom shadows (`shadow-[0px_4px_8px_2px_rgba(0,0,0,0.25)]`), line-height and letter-spacing (`leading-*` / `tracking-*`), auto-layout Hug sizing (`w-fit` / `h-fit`), stretch (`self-stretch`), and absolute positioning (`absolute` + `left-[…]` / `top-[…]`).
-- **Mobile Code Transpilers:**
-  - **React Native:** Emits clean `StyleSheet.create({ container: { ... } })` with flex layout, dimensions, and padding.
-  - **Flutter:** Generates `Container` with `BoxDecoration` (`color: const Color(0x...)`, `borderRadius`, `BoxShadow`) or `TextStyle`.
-  - **SwiftUI:** Generates chained modifiers (`.frame()`, `.padding()`, `.background()`, `.cornerRadius()`).
-  - **Jetpack Compose:** Generates `Modifier.size()`, `.padding()`, `.background()`, and `RoundedCornerShape()`.
+### 💻 Inspect Code Viewer (Web & Mobile with Design Tokens)
+- **Web & Mobile First:** Seamlessly switch between **Pure CSS** for web, and dedicated mobile frameworks: **React Native (StyleSheet)**, **Flutter (Dart BoxDecoration / TextStyle)**, **iOS (SwiftUI modifiers)**, and **Android (Jetpack Compose Modifier)**.
+- **Figma Variables (Design Tokens) Auto-Substitution:**
+  - When layers are bound to Figma Variables (or TextStyles from UI kits like Material 3), NodePeeker **automatically substitutes** them into your code:
+    - **CSS:** `background-color: var(--color-bg); /* #1e1e2e */`
+    - **React Native:** `backgroundColor: tokens.colorBg, // '#1e1e2e'`
+    - **Flutter:** `color: AppColors.colorBg,` and `fontSize: AppTypography.bodyLargeSize,`
+    - **SwiftUI:** `.background(Color("color/bg"))` and `.cornerRadius(Theme.radiusLg)`
+    - **Jetpack Compose:** `.background(color = AppColors.ColorBg)`
+  - **Clean Token Names:** Automatically cleans up verbose Figma library folder paths (e.g. `Static/Body Large/Size` ➔ `bodyLargeSize`, `Schemes/On Surface` ➔ `onSurface`).
+  - **Always Visible by Default:** Variables are active immediately without having to hunt for a toggle. Use the **Tokens** button in the toolbar to switch to raw numbers whenever you want.
+  - **Compact Token Bar:** A single-row horizontal pill list at the bottom of the code box shows all bound tokens; click any pill to copy its token name directly!
+- **Developer Platform Memory:** Automatically remembers whether you are developing for Web (CSS) or Mobile (React Native, Flutter, SwiftUI, Compose). The plugin automatically defaults to your preferred platform across restarts and layer selections!
 - **SVG Markup & Visual Preview:** Switch to the SVG tab to inspect raw vector code or view a live SVG preview board on a checkerboard background before copying or downloading.
-- **In-Plugin Shortcuts:** Press `1` or `C` for CSS, `2` or `T` for Tailwind, `3` or `S` for SVG, and `Ctrl+C` / `Cmd+C` to copy active code.
+- **In-Plugin Shortcuts:** Press `1` or `C` for CSS, `2` or `R` for React Native, `3` or `S` for SVG, and `Ctrl+C` / `Cmd+C` to copy active code.
 
 ### 🎨 Quick Color Copier (Web & Mobile Formats)
 - **Automatic Palette Detection:** Extracts solid fills and strokes applied to the selected layer and its immediate children.
