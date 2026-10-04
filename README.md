@@ -35,16 +35,21 @@
 
 ## 🚀 Features
 
-### 💻 Inspect Code Viewer (Default: Pure CSS)
-- **Pure CSS First:** Automatically displays standard, clean CSS declarations by default with live color chips, line numbers, and formatted rules ready to paste.
+### 💻 Inspect Code Viewer (Web & Mobile)
+- **Web & Mobile First:** Seamlessly switch between **Pure CSS**, **Tailwind CSS**, **React Native (StyleSheet)**, **Flutter (Dart BoxDecoration / TextStyle)**, **iOS (SwiftUI modifiers)**, and **Android (Jetpack Compose Modifier)**.
 - **Syntax Highlighting:** Real-time token highlighting for properties, values, units, hex colors, and Tailwind utility categories.
 - **Tailwind CSS Generation:** Easily toggle to Tailwind utility classes with color-coded token badges. Real values are emitted rather than arbitrary presets: custom shadows (`shadow-[0px_4px_8px_2px_rgba(0,0,0,0.25)]`), line-height and letter-spacing (`leading-*` / `tracking-*`), auto-layout Hug sizing (`w-fit` / `h-fit`), stretch (`self-stretch`), and absolute positioning (`absolute` + `left-[…]` / `top-[…]`).
+- **Mobile Code Transpilers:**
+  - **React Native:** Emits clean `StyleSheet.create({ container: { ... } })` with flex layout, dimensions, and padding.
+  - **Flutter:** Generates `Container` with `BoxDecoration` (`color: const Color(0x...)`, `borderRadius`, `BoxShadow`) or `TextStyle`.
+  - **SwiftUI:** Generates chained modifiers (`.frame()`, `.padding()`, `.background()`, `.cornerRadius()`).
+  - **Jetpack Compose:** Generates `Modifier.size()`, `.padding()`, `.background()`, and `RoundedCornerShape()`.
 - **SVG Markup & Visual Preview:** Switch to the SVG tab to inspect raw vector code or view a live SVG preview board on a checkerboard background before copying or downloading.
 - **In-Plugin Shortcuts:** Press `1` or `C` for CSS, `2` or `T` for Tailwind, `3` or `S` for SVG, and `Ctrl+C` / `Cmd+C` to copy active code.
 
-### 🎨 Quick Color Copier
+### 🎨 Quick Color Copier (Web & Mobile Formats)
 - **Automatic Palette Detection:** Extracts solid fills and strokes applied to the selected layer and its immediate children.
-- **Multi-Format Conversion:** Toggle effortlessly between **HEX**, **8-digit HEXA (with alpha)**, **RGB**, and **HSL** color spaces.
+- **Multi-Format Conversion:** Toggle effortlessly between **HEX**, **8-digit HEXA (alpha)**, **RGB**, **HSL**, **ARGB (Flutter / Android `Color(0xAARRGGBB)`)**, and **Swift (SwiftUI `Color(...)`)**.
 - **Single-Click Copying:** Click any color badge or swatch to copy formatted values to your clipboard.
 
 ### 📦 Visual Box Model
@@ -55,10 +60,13 @@
 - **Select Exactly Two Layers:** The inspector automatically switches to a distance panel displaying the horizontal gap, vertical gap, edge-to-edge distance, and spatial direction (`Button is to the right of Card`).
 - **Alignment & Overlap:** Detects edge alignments (top, bottom, left, right, center lines) within half-pixel precision and surfaces intersection overlaps when layers overlap.
 
-### ⚡ 1-Click Asset Export
+### ⚡ 1-Click Asset Export & Mobile Density Bundles
 - **Copy SVG:** Copies raw, optimized SVG markup straight into your clipboard for direct JSX/HTML pasting.
 - **Save SVG:** One-click download of SVG vector assets without digging through Figma's nested menus.
 - **Save PNG @2x:** Exports high-resolution raster image files instantly.
+- **iOS Asset Catalog (.zip):** 1-Click download of a ready-to-use `.imageset` archive containing `@1x`, `@2x`, and `@3x` PNGs plus Xcode's `Contents.json` metadata (drag-and-drop straight into `Assets.xcassets`).
+- **Android Resource Bundle (.zip):** 1-Click download of a multi-density archive with `res/drawable-mdpi` (1x), `drawable-hdpi` (1.5x), `drawable-xhdpi` (2x), `drawable-xxhdpi` (3x), and `drawable-xxxhdpi` (4x).
+- **Zero Heavy Dependencies:** Uses a custom store-only ZIP builder with zero third-party bundle bloat.
 
 ### 🎬 Animation Export (MP4 / GIF)
 - **Layer & Top-Level Frame Export:** Export keyframe animations, video fills, and Motion timelines as MP4 or animated GIF.
@@ -288,12 +296,14 @@ Once connected, your AI assistant can use the following tools:
 | Tool | Parameters | Description |
 |---|---|---|
 | `nodepeeker_status` | _none_ | Checks if NodePeeker is connected in Figma and returns the active file name and file key. |
-| `nodepeeker_get_selection` | `view?: "summary" \| "tailwind" \| "css" \| "full"` | Returns design inspection data for the currently selected layer on Figma canvas. |
-| `nodepeeker_get_node` | `nodeId: string`, `view?: "summary" \| "tailwind" \| "css" \| "full"` | Inspects any specific layer by its Figma ID (e.g., `"1:2"` or `"1-2"`), including child component hierarchy. |
+| `nodepeeker_get_selection` | `view?: "summary" \| "tailwind" \| "css" \| "react-native" \| "flutter" \| "swiftui" \| "compose" \| "full"` | Returns design inspection data for the currently selected layer on Figma canvas in web or mobile formats. |
+| `nodepeeker_get_node` | `nodeId: string`, `view?: "summary" \| "tailwind" \| "css" \| "react-native" \| "flutter" \| "swiftui" \| "compose" \| "full"` | Inspects any specific layer by its Figma ID (e.g., `"1:2"` or `"1-2"`), including child component hierarchy. |
 
 #### Example Prompts for AI Chat:
 - *"Check if Figma is connected and what file is open."*
 - *"Look at the layer I currently have selected in Figma and generate a React Tailwind component for it."*
+- *"Generate a Flutter Container widget for the selected Figma layer."*
+- *"Generate React Native StyleSheet code for the current Figma selection."*
 - *"Inspect node 349:399 in Figma and extract its color scheme and typography."*
 
 ---

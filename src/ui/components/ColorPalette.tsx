@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ColorToken } from '../../types/messages';
 import { Palette, Copy, Check } from 'lucide-react';
-import { toHex8 } from '../../utils/color';
+import { toHex8, toArgbColor, toSwiftUiColor } from '../../utils/color';
 
 interface ColorPaletteProps {
   colors: ColorToken[];
@@ -9,8 +9,10 @@ interface ColorPaletteProps {
   copiedText: string | null;
 }
 
+type ColorFormat = 'HEX' | 'RGB' | 'HSL' | 'ARGB' | 'Swift';
+
 export const ColorPalette: React.FC<ColorPaletteProps> = ({ colors, onCopy, copiedText }) => {
-  const [format, setFormat] = useState<'HEX' | 'RGB' | 'HSL'>('HEX');
+  const [format, setFormat] = useState<ColorFormat>('HEX');
 
   const getFormattedValue = (c: ColorToken) => {
     switch (format) {
@@ -20,6 +22,10 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({ colors, onCopy, copi
         return c.rgba;
       case 'HSL':
         return c.hsl;
+      case 'ARGB':
+        return toArgbColor(c.hex, c.opacity);
+      case 'Swift':
+        return toSwiftUiColor(c.hex, c.opacity);
     }
   };
 
@@ -29,19 +35,19 @@ export const ColorPalette: React.FC<ColorPaletteProps> = ({ colors, onCopy, copi
 
   return (
     <div className="p-3 border-b border-surface0">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1 text-[11px] font-medium text-overlay1">
+      <div className="flex items-center justify-between mb-2 gap-1">
+        <div className="flex items-center gap-1 text-[11px] font-medium text-overlay1 shrink-0">
           <Palette size={12} />
-          <span>Colors & Swatches ({colors.length})</span>
+          <span>Colors ({colors.length})</span>
         </div>
 
         {/* Format switchers */}
-        <div className="flex items-center rounded bg-surface0 p-0.5 text-[10px] font-mono">
-          {(['HEX', 'RGB', 'HSL'] as const).map((fmt) => (
+        <div className="flex items-center rounded bg-surface0 p-0.5 text-[9px] font-mono shrink-0">
+          {(['HEX', 'RGB', 'HSL', 'ARGB', 'Swift'] as const).map((fmt) => (
             <button
               key={fmt}
               onClick={() => setFormat(fmt)}
-              className={`px-1.5 py-0.5 rounded transition ${
+              className={`px-1 py-0.5 rounded transition ${
                 format === fmt
                   ? 'bg-surface2 text-text font-semibold shadow-xs'
                   : 'text-overlay1 hover:text-text'

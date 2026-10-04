@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ColorPalette } from '../src/ui/components/ColorPalette';
 import { ColorToken } from '../src/types/messages';
-import { toHex8 } from '../src/utils/color';
+import { toHex8, toArgbColor, toSwiftUiColor } from '../src/utils/color';
 
 const render = (colors: ColorToken[]) =>
   renderToStaticMarkup(
@@ -67,6 +67,23 @@ describe('ColorPalette', () => {
       expect(toHex8('#FFFFFF', 1.2)).toBe('#FFFFFF');
     });
 
+    it('renders format buttons including ARGB and Swift', () => {
+      const html = render([
+        {
+          hex: '#2563EB',
+          rgba: 'rgb(37, 99, 235)',
+          hsl: 'hsl(221, 83%, 53%)',
+          opacity: 1,
+          source: 'fill',
+        },
+      ]);
+      expect(html).toContain('HEX');
+      expect(html).toContain('RGB');
+      expect(html).toContain('HSL');
+      expect(html).toContain('ARGB');
+      expect(html).toContain('Swift');
+    });
+
     it('converts opacity float to 2-digit uppercase hex alpha', () => {
       expect(toHex8('#1E66F5', 0.5)).toBe('#1E66F580');
       expect(toHex8('#000000', 0)).toBe('#00000000');
@@ -74,6 +91,31 @@ describe('ColorPalette', () => {
       expect(toHex8('#FF0000', 0.25)).toBe('#FF000040');
       expect(toHex8('#00FF00', 0.75)).toBe('#00FF00BF');
       expect(toHex8('#EF4444', 0.8)).toBe('#EF4444CC');
+    });
+  });
+
+  describe('toArgbColor utility (Flutter / Android)', () => {
+    it('generates ARGB hex with 0xFF prefix for full opacity', () => {
+      expect(toArgbColor('#2563EB', 1)).toBe('Color(0xFF2563EB)');
+      expect(toArgbColor('2563EB')).toBe('Color(0xFF2563EB)');
+    });
+
+    it('places alpha at the beginning for fractional opacity', () => {
+      expect(toArgbColor('#1E66F5', 0.5)).toBe('Color(0x801E66F5)');
+      expect(toArgbColor('#000000', 0)).toBe('Color(0x00000000)');
+      expect(toArgbColor('#EF4444', 0.8)).toBe('Color(0xCCEF4444)');
+    });
+  });
+
+  describe('toSwiftUiColor utility (SwiftUI)', () => {
+    it('generates Color with rgb floats without opacity when alpha is 1', () => {
+      expect(toSwiftUiColor('#FF0000', 1)).toBe('Color(red: 1, green: 0, blue: 0)');
+      expect(toSwiftUiColor('#00FF00', 1)).toBe('Color(red: 0, green: 1, blue: 0)');
+    });
+
+    it('includes opacity parameter when alpha is reduced', () => {
+      expect(toSwiftUiColor('#FF0000', 0.5)).toBe('Color(red: 1, green: 0, blue: 0, opacity: 0.5)');
+      expect(toSwiftUiColor('#000000', 0)).toBe('Color(red: 0, green: 0, blue: 0, opacity: 0)');
     });
   });
 });

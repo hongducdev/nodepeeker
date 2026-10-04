@@ -147,6 +147,14 @@ export interface BridgeStatePayload {
   update?: PluginUpdateInfo | null;
 }
 
+export type MobileExportTarget = 'ios' | 'android';
+
+export interface MobileExportFile {
+  name: string;
+  bytes?: Uint8Array;
+  text?: string;
+}
+
 export type PluginToUIMessage =
   | { type: 'SELECTION_CHANGE'; payload: SelectionState }
   | { type: 'FILE_CONTEXT'; payload: FileContext }
@@ -156,6 +164,10 @@ export type PluginToUIMessage =
       payload:
         | { format: 'SVG'; content: string; name: string; nodeId: string; action: 'copy' | 'download' | 'view' }
         | { format: 'PNG'; bytes: Uint8Array; name: string; action: 'download' };
+    }
+  | {
+      type: 'MOBILE_EXPORT_RESULT';
+      payload: { target: MobileExportTarget; name: string; files: MobileExportFile[] };
     }
   | { type: 'VIDEO_EXPORT_RESULT'; payload: { format: VideoFormat; bytes: Uint8Array; name: string } }
   | { type: 'EXPORT_ERROR'; error: string };
@@ -168,6 +180,7 @@ export type UIToPluginMessage =
       action: 'copy' | 'download' | 'view';
     }
   | { type: 'REQUEST_VIDEO_EXPORT'; options: VideoExportOptions }
+  | { type: 'REQUEST_MOBILE_EXPORT'; target: MobileExportTarget }
   | { type: 'SET_BRIDGE_TOKEN'; token: string }
   | { type: 'TOGGLE_BRIDGE'; enabled: boolean }
   | { type: 'INIT_REQUEST' };

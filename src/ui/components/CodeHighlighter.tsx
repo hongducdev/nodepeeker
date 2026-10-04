@@ -1,14 +1,27 @@
 import React from 'react';
 
+export type HighlightLanguage =
+  | 'css'
+  | 'tailwind'
+  | 'svg'
+  | 'react-native'
+  | 'flutter'
+  | 'swiftui'
+  | 'compose';
+
 interface CodeHighlighterProps {
   code: string;
-  language: 'css' | 'tailwind' | 'svg';
+  language: HighlightLanguage;
 }
 
-const EMPTY_PLACEHOLDER: Record<CodeHighlighterProps['language'], string> = {
+const EMPTY_PLACEHOLDER: Record<HighlightLanguage, string> = {
   css: '/* No styles extracted */',
   tailwind: '/* No Tailwind classes generated */',
   svg: '<!-- No SVG available for this layer -->',
+  'react-native': '// No React Native styles generated',
+  flutter: '// No Flutter code generated',
+  swiftui: '// No SwiftUI code generated',
+  compose: '// No Compose code generated',
 };
 
 const Swatch: React.FC<{ hex: string; size: number }> = ({ hex, size }) => (
@@ -23,7 +36,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
     return <span className="text-overlay1 italic">{EMPTY_PLACEHOLDER[language]}</span>;
   }
 
-  if (language === 'css') {
+  if (language !== 'tailwind' && language !== 'svg') {
     const lines = code.split('\n');
     return (
       <div className="font-mono text-xs select-text">
@@ -31,7 +44,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
           const trimmed = line.trim();
 
           // Comment
-          if (trimmed.startsWith('/*')) {
+          if (trimmed.startsWith('/*') || trimmed.startsWith('//')) {
             return (
               <div key={idx} className="flex">
                 <span className="select-none text-overlay1 w-5 text-right pr-2 shrink-0 text-[10px]">
@@ -44,12 +57,12 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
 
           // Property : Value;
           const colonIdx = line.indexOf(':');
-          if (colonIdx > 0) {
+          if (colonIdx > 0 && !line.includes('(') && !line.startsWith('.')) {
             const property = line.slice(0, colonIdx);
             const rest = line.slice(colonIdx + 1);
-            const semiIdx = rest.lastIndexOf(';');
+            const semiIdx = rest.lastIndexOf(';') >= 0 ? rest.lastIndexOf(';') : rest.lastIndexOf(',');
             const value = semiIdx >= 0 ? rest.slice(0, semiIdx) : rest;
-            const semi = semiIdx >= 0 ? ';' : '';
+            const semi = semiIdx >= 0 ? rest.charAt(semiIdx) : '';
 
             // Tokenize value: look for hex colors, numbers/units, strings
             const tokens = tokenizeCssValue(value);
@@ -70,11 +83,11 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
           }
 
           return (
-            <div key={idx} className="flex leading-relaxed">
+            <div key={idx} className="flex leading-relaxed hover:bg-surface0/40 px-1 rounded transition-colors">
               <span className="select-none text-overlay1 w-5 text-right pr-2 shrink-0 text-[10px]">
                 {idx + 1}
               </span>
-              <span className="text-text">{line}</span>
+              <span className="text-text whitespace-pre">{tokenizeGenericCode(line)}</span>
             </div>
           );
         })}
@@ -289,4 +302,51 @@ function renderSvgValue(quoted: string): React.ReactNode {
     );
   }
   return <span className="text-green">{quoted}</span>;
+}
+
+function tokenizeGenericCode(line: string): React.ReactNode[] {
+  const regex = /(#[0-9a-fA-F]{3,8}|0x[0-9a-fA-F]{8})|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|(\b(?:const|val|var|let|import|from|export|function|return|default)\b)|(\b\d+(?:\.\d+)?f?\b)|([a-zA-Z_$][a-zA-Z0-9_$]*)|([^\s\w'"]+)/g;
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(line)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(line.slice(lastIndex, match.index));
+    }
+    const [full, hexOrArgb, str, keyword, num, ident] = match;
+
+    if (hexOrArgb) {
+      const hex = hexOrArgb.startsWith('0x')
+        ? `#${hexOrArgb.slice(4)}${hexOrArgb.slice(2, 4)}`
+        : hexOrArgb;
+      nodes.push(
+        <span key={match.index} className="inline-flex items-center gap-1">
+          <Swatch hex={hex} size={9} />
+          <span className="text-peach">{hexOrArgb}</span>
+        </span>
+      );
+    } else if (str) {
+      nodes.push(<span key={match.index} className="text-green">{str}</span>);
+    } else if (keyword) {
+      nodes.push(<span key={match.index} className="text-mauve font-semibold">{keyword}</span>);
+    } else if (num) {
+      nodes.push(<span key={match.index} className="text-peach">{num}</span>);
+    } else if (ident) {
+      if (/^[A-Z]/.test(ident)) {
+        nodes.push(<span key={match.index} className="text-yellow">{ident}</span>);
+      } else {
+        nodes.push(<span key={match.index} className="text-text">{ident}</span>);
+      }
+    } else {
+      nodes.push(full);
+    }
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < line.length) {
+    nodes.push(line.slice(lastIndex));
+  }
+
+  return nodes.length > 0 ? nodes : [line];
 }

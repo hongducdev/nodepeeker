@@ -35,16 +35,20 @@
 
 ## 🚀 Tính năng nổi bật
 
-### 💻 Trình soi mã nguồn (Mặc định: Pure CSS)
-- **Ưu tiên CSS chuẩn:** Tự động hiển thị các khai báo CSS rõ ràng, chuẩn mực theo mặc định kèm theo ô hiển thị màu trực tiếp, số dòng và định dạng sẵn sàng để copy-paste vào dự án.
-- **Tô màu cú pháp (Syntax Highlighting):** Phân loại và tô màu theo thời gian thực cho thuộc tính (properties), giá trị (values), đơn vị (units), mã màu hex và các nhóm tiện ích Tailwind.
-- **Tạo mã Tailwind CSS:** Chuyển đổi linh hoạt sang các class Tailwind với các huy hiệu màu sắc trực quan. Xuất giá trị **thực tế** của layer thay vì làm tròn thô thiển: đổ bóng tùy chỉnh (`shadow-[0px_4px_8px_2px_rgba(0,0,0,0.25)]`), chiều cao dòng và khoảng cách chữ (`leading-*` / `tracking-*`), kích thước Hug của Auto-layout (`w-fit` / `h-fit`), kéo dãn (`self-stretch`), và định vị tuyệt đối (`absolute` + `left-[…]` / `top-[…]`).
+### 💻 Trình soi mã nguồn (Web & Mobile)
+- **Hỗ trợ đa nền tảng Web & Mobile:** Dễ dàng chuyển đổi giữa **Pure CSS**, **Tailwind CSS**, **React Native (StyleSheet)**, **Flutter (Dart BoxDecoration / TextStyle)**, **iOS (SwiftUI modifiers)**, và **Android (Jetpack Compose Modifier)**.
+- **Tô màu cú pháp (Syntax Highlighting):** Phân loại và tô màu theo thời gian thực cho thuộc tính (properties), giá trị (values), đơn vị (units), mã màu hex và các nhóm tiện ích Tailwind / Mobile.
+- **Bộ biên dịch mã Mobile chuyên dụng:**
+  - **React Native:** Sinh mã `StyleSheet.create({ container: { ... } })` chuẩn xác với layout Flexbox, kích thước và padding.
+  - **Flutter:** Sinh `Container` kèm `BoxDecoration` (`color: const Color(0x...)`, `borderRadius`, `BoxShadow`) hoặc `TextStyle`.
+  - **SwiftUI:** Sinh chuỗi modifiers (.frame(), .padding(), .background(), .cornerRadius()).
+  - **Jetpack Compose:** Sinh chuỗi Modifier (.size(), .padding(), .background(), RoundedCornerShape()).
 - **Mã SVG & Xem trước trực quan:** Chuyển sang tab SVG để xem mã vector thô hoặc xem trước đồ họa trên bảng nền caro (checkerboard) trước khi sao chép hoặc tải về máy.
 - **Phím tắt trong Plugin:** Nhấn phím `1` hoặc `C` cho CSS, `2` hoặc `T` cho Tailwind, `3` hoặc `S` cho SVG, và `Ctrl+C` / `Cmd+C` để sao chép nhanh khối mã đang chọn.
 
-### 🎨 Sao chép màu siêu nhanh
+### 🎨 Sao chép màu siêu nhanh (Định dạng Web & Mobile)
 - **Tự động nhận diện bảng màu:** Trích xuất toàn bộ màu nền (fills) và viền (strokes) được áp dụng trên layer đang chọn và các layer con trực tiếp.
-- **Chuyển đổi đa định dạng:** Chuyển đổi tức thì giữa các không gian màu **HEX**, **HEXA 8 ký tự (kèm kênh alpha)**, **RGB**, và **HSL**.
+- **Chuyển đổi đa định dạng:** Chuyển đổi tức thì giữa các không gian màu **HEX**, **HEXA 8 ký tự (kèm kênh alpha)**, **RGB**, **HSL**, **ARGB (Flutter / Android `Color(0xAARRGGBB)`)**, và **Swift (SwiftUI `Color(...)`)**.
 - **Copy 1-Click:** Nhấp chuột vào bất kỳ huy hiệu màu hoặc ô màu nào để sao chép ngay giá trị đã định dạng vào clipboard.
 
 ### 📦 Mô hình Box Model trực quan
@@ -55,10 +59,13 @@
 - **Chọn đúng 2 layer:** Bảng kiểm tra sẽ tự động chuyển sang chế độ đo khoảng cách — hiển thị **khoảng cách ngang, khoảng cách dọc, khoảng cách đường chéo mép-đến-mép**, và hướng tương đối giữa 2 phần tử (`Button is to the right of Card`).
 - **Căn hàng & Giao nhau:** Nhận diện các mép thẳng hàng (trên, dưới, trái, phải, đường tâm) với độ chính xác nửa pixel và hiển thị diện tích đè nhau nếu 2 layer giao nhau.
 
-### ⚡ Xuất tài nguyên 1-Click
+### ⚡ Xuất tài nguyên 1-Click & Gói Asset Mobile đa mật độ
 - **Copy SVG:** Sao chép trực tiếp mã SVG đã được tối ưu vào clipboard để dán thẳng vào JSX/HTML.
 - **Lưu SVG:** Tải xuống file vector SVG chỉ với 1 cú click chuột mà không cần mở menu xuất lồng ghép phức tạp của Figma.
 - **Lưu PNG @2x:** Xuất hình ảnh raster độ phân giải cao sắc nét.
+- **Gói iOS Asset Catalog (.zip):** 1-Click tải gói `.imageset` chứa bộ ba ảnh `@1x`, `@2x`, `@3x` kèm file `Contents.json` của Xcode (kéo thả thẳng vào `Assets.xcassets`).
+- **Gói Android Drawable (.zip):** 1-Click tải gói thư mục chứa đầy đủ mật độ: `res/drawable-mdpi` (1x), `drawable-hdpi` (1.5x), `drawable-xhdpi` (2x), `drawable-xxhdpi` (3x), và `drawable-xxxhdpi` (4x).
+- **Bộ tạo ZIP siêu nhẹ:** Tự xây dựng bộ ghép nhị phân Zip Store-only không tốn thêm bất kỳ KB bundle thư viện thứ ba nào.
 
 ### 🎬 Xuất hoạt ảnh & Video (MP4 / GIF)
 - **Hỗ trợ xuất Frame & Layer:** Xuất hoạt ảnh keyframe, video fill và Motion timelines thành file MP4 hoặc ảnh động GIF.
@@ -288,12 +295,14 @@ Sau khi kết nối thành công, trợ lý AI sẽ tự động sở hữu các
 | Tên công cụ | Tham số | Mô tả chức năng |
 |---|---|---|
 | `nodepeeker_status` | _không có_ | Kiểm tra plugin NodePeeker có đang mở không, trả về tên file và file key của bản vẽ Figma hiện tại. |
-| `nodepeeker_get_selection` | `view?: "summary" \| "tailwind" \| "css" \| "full"` | Lấy dữ liệu chi tiết của layer bạn đang chọn trên màn hình Figma. |
-| `nodepeeker_get_node` | `nodeId: string`, `view?: "summary" \| "tailwind" \| "css" \| "full"` | Truy xuất chi tiết bất kỳ component/layer nào theo ID (ví dụ `"1:2"` hoặc `"349:399"`), kèm cây phân cấp phần tử con. |
+| `nodepeeker_get_selection` | `view?: "summary" \| "tailwind" \| "css" \| "react-native" \| "flutter" \| "swiftui" \| "compose" \| "full"` | Lấy dữ liệu chi tiết của layer bạn đang chọn trên màn hình Figma theo định dạng Web hoặc Mobile. |
+| `nodepeeker_get_node` | `nodeId: string`, `view?: "summary" \| "tailwind" \| "css" \| "react-native" \| "flutter" \| "swiftui" \| "compose" \| "full"` | Truy xuất chi tiết bất kỳ component/layer nào theo ID (ví dụ `"1:2"` hoặc `"349:399"`), kèm cây phân cấp phần tử con. |
 
 #### Câu lệnh mẫu trong khung Chat AI:
 - *"Kiểm tra xem Figma đã kết nối chưa và đang mở file nào."*
 - *"Xem layer tôi đang chọn trên Figma và viết component React Tailwind tương ứng."*
+- *"Tạo Flutter Container widget cho layer Figma tôi đang chọn."*
+- *"Viết code React Native StyleSheet cho component này."*
 - *"Đọc thông tin node 349:399 trong Figma và xuất bảng màu cùng kiểu chữ."*
 
 ---

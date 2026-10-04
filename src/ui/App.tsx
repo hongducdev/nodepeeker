@@ -22,6 +22,7 @@ import { Toast } from './components/Toast';
 import { useClipboard } from './hooks/useClipboard';
 import { useFigmaTheme } from './hooks/useFigmaTheme';
 import { videoExtension, videoMime } from '../utils/video-options';
+import { createStoreZip } from '../utils/zip';
 import { Bot } from 'lucide-react';
 
 const downloadBlob = (blob: Blob, filename: string) => {
@@ -161,6 +162,26 @@ export const App: React.FC = () => {
           }
         } else if (payload.format === 'PNG') {
           downloadBytes(payload.bytes, 'image/png', `${payload.name || 'image'}@2x.png`);
+        }
+        return;
+      }
+
+      if (msg.type === 'MOBILE_EXPORT_RESULT') {
+        setIsExporting(false);
+        const { target, name, files } = msg.payload;
+        try {
+          const entries = files.map((f) => ({
+            name: f.name,
+            data: f.bytes ?? f.text ?? '',
+          }));
+          const zipBytes = createStoreZip(entries);
+          downloadBytes(
+            zipBytes,
+            'application/zip',
+            `${name || 'asset'}-${target}-assets.zip`
+          );
+        } catch (err) {
+          alert(`Zip export failed: ${err instanceof Error ? err.message : String(err)}`);
         }
         return;
       }

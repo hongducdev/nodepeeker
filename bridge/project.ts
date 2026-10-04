@@ -1,6 +1,12 @@
-import type { NodeInspectionData } from '../src/types/messages';
-import { transpileToTailwind } from '../src/utils/tailwind-transpiler';
-import type { ViewName } from './protocol';
+import type { NodeInspectionData } from '../src/types/messages.js';
+import { transpileToTailwind } from '../src/utils/tailwind-transpiler.js';
+import {
+  transpileToReactNative,
+  transpileToFlutter,
+  transpileToSwiftUI,
+  transpileToCompose,
+} from '../src/utils/transpilers/index.js';
+import type { ViewName } from './protocol.js';
 
 /**
  * Projects one `NodeInspectionData` down to the requested view.
@@ -54,8 +60,18 @@ export function toSummary(data: NodeInspectionData): NodeSummary {
   return summary;
 }
 
+export type ProjectedView =
+  | NodeSummary
+  | { id: string; name: string; tailwind: string }
+  | { id: string; name: string; css: Record<string, string> }
+  | { id: string; name: string; reactNative: string }
+  | { id: string; name: string; flutter: string }
+  | { id: string; name: string; swiftUI: string }
+  | { id: string; name: string; compose: string }
+  | NodeInspectionData;
+
 /** Returns whatever the MCP tool should serialize for this view. */
-export function projectView(data: NodeInspectionData, view: ViewName): unknown {
+export function projectView(data: NodeInspectionData, view: ViewName): ProjectedView {
   switch (view) {
     case 'summary':
       return toSummary(data);
@@ -63,7 +79,17 @@ export function projectView(data: NodeInspectionData, view: ViewName): unknown {
       return { id: data.id, name: data.name, tailwind: transpileToTailwind(data) };
     case 'css':
       return { id: data.id, name: data.name, css: data.css };
+    case 'react-native':
+      return { id: data.id, name: data.name, reactNative: transpileToReactNative(data) };
+    case 'flutter':
+      return { id: data.id, name: data.name, flutter: transpileToFlutter(data) };
+    case 'swiftui':
+      return { id: data.id, name: data.name, swiftUI: transpileToSwiftUI(data) };
+    case 'compose':
+      return { id: data.id, name: data.name, compose: transpileToCompose(data) };
     case 'full':
+      return data;
+    default:
       return data;
   }
 }

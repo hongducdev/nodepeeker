@@ -104,7 +104,16 @@ const authorized = (req: IncomingMessage, url: URL): boolean => {
 
 // ---- MCP --------------------------------------------------------------------
 
-const VIEW_ENUM = z.enum(['summary', 'tailwind', 'css', 'full']);
+const VIEW_ENUM = z.enum([
+  'summary',
+  'tailwind',
+  'css',
+  'full',
+  'react-native',
+  'flutter',
+  'swiftui',
+  'compose',
+]);
 
 function buildMcpServer(): McpServer {
   const server = new McpServer({ name: 'nodepeeker', version: '0.1.0' });
@@ -150,7 +159,7 @@ function buildMcpServer(): McpServer {
       description:
         'What the user currently has selected in Figma. Served from the plugin\'s pushed snapshot, ' +
         'so it is instant and costs no Figma quota. Defaults to the compact `summary` view — ' +
-        'escalate to `tailwind` or `css` only when you actually need the styles.',
+        'escalate to `tailwind`, `css`, `react-native`, `flutter`, `swiftui`, or `compose` when you need code.',
       inputSchema: { view: VIEW_ENUM.optional() },
     },
     async ({ view }) => {
@@ -187,8 +196,8 @@ function buildMcpServer(): McpServer {
       title: 'Inspect a specific Figma node',
       description:
         'Inspect one node by id, regardless of what is selected. Use the compact `summary` view by ' +
-        'default; `tailwind` and `css` cost more tokens, and `full` costs a lot more. ' +
-        'Node ids look like "1:2" or "1-2".',
+        'default; `tailwind`, `css`, `react-native`, `flutter`, `swiftui`, or `compose` cost slightly more tokens, ' +
+        'and `full` costs a lot more. Node ids look like "1:2" or "1-2".',
       inputSchema: { nodeId: z.string().min(1), view: VIEW_ENUM.optional() },
     },
     async ({ nodeId, view }) => {

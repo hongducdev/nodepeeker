@@ -19,9 +19,26 @@ export type CommandType = 'GET_SELECTION' | 'GET_NODE';
  * sends one complete payload and the cheap views are pure functions over it — testable
  * without Figma, and impossible to drift between views.
  */
-export type ViewName = 'summary' | 'tailwind' | 'css' | 'full';
+export type ViewName =
+  | 'summary'
+  | 'tailwind'
+  | 'css'
+  | 'full'
+  | 'react-native'
+  | 'flutter'
+  | 'swiftui'
+  | 'compose';
 
-export const VIEW_NAMES: readonly ViewName[] = ['summary', 'tailwind', 'css', 'full'];
+export const VIEW_NAMES: readonly ViewName[] = [
+  'summary',
+  'tailwind',
+  'css',
+  'full',
+  'react-native',
+  'flutter',
+  'swiftui',
+  'compose',
+];
 
 export interface PluginHello {
   fileName: string | null;

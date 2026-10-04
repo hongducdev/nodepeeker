@@ -233,6 +233,87 @@ figma.ui.onmessage = async (msg: UIToPluginMessage) => {
       });
     }
   }
+
+  if (msg.type === 'REQUEST_MOBILE_EXPORT') {
+    const selection = figma.currentPage.selection;
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'EXPORT_ERROR',
+        error: 'No layer selected for mobile asset export',
+      });
+      return;
+    }
+
+    const node = selection[0];
+    const safeName = (node.name || 'asset').replace(/[/\\?%*:|"<>]/g, '-');
+
+    try {
+      if (msg.target === 'ios') {
+        const [b1, b2, b3] = await Promise.all([
+          node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 1 } }),
+          node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 2 } }),
+          node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 3 } }),
+        ]);
+
+        const contentsJson = JSON.stringify(
+          {
+            images: [
+              { idiom: 'universal', filename: `${safeName}.png`, scale: '1x' },
+              { idiom: 'universal', filename: `${safeName}@2x.png`, scale: '2x' },
+              { idiom: 'universal', filename: `${safeName}@3x.png`, scale: '3x' },
+            ],
+            info: { version: 1, author: 'nodepeeker' },
+          },
+          null,
+          2
+        );
+
+        figma.ui.postMessage({
+          type: 'MOBILE_EXPORT_RESULT',
+          payload: {
+            target: 'ios',
+            name: safeName,
+            files: [
+              { name: `${safeName}.imageset/${safeName}.png`, bytes: b1 },
+              { name: `${safeName}.imageset/${safeName}@2x.png`, bytes: b2 },
+              { name: `${safeName}.imageset/${safeName}@3x.png`, bytes: b3 },
+              { name: `${safeName}.imageset/Contents.json`, text: contentsJson },
+            ],
+          },
+        });
+      } else if (msg.target === 'android') {
+        const [mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi] = await Promise.all([
+          node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 1 } }),
+          node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 1.5 } }),
+          node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 2 } }),
+          node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 3 } }),
+          node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 4 } }),
+        ]);
+
+        figma.ui.postMessage({
+          type: 'MOBILE_EXPORT_RESULT',
+          payload: {
+            target: 'android',
+            name: safeName,
+            files: [
+              { name: `res/drawable-mdpi/${safeName}.png`, bytes: mdpi },
+              { name: `res/drawable-hdpi/${safeName}.png`, bytes: hdpi },
+              { name: `res/drawable-xhdpi/${safeName}.png`, bytes: xhdpi },
+              { name: `res/drawable-xxhdpi/${safeName}.png`, bytes: xxhdpi },
+              { name: `res/drawable-xxxhdpi/${safeName}.png`, bytes: xxxhdpi },
+            ],
+          },
+        });
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Mobile asset export failed';
+      figma.ui.postMessage({
+        type: 'EXPORT_ERROR',
+        error: message,
+      });
+    }
+    return;
+  }
   if (msg.type === 'REQUEST_VIDEO_EXPORT') {
     const selectedNode = figma.currentPage.selection[0];
     if (!selectedNode) {

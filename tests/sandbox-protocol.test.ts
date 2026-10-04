@@ -543,3 +543,44 @@ describe('sandbox bridge protocol', () => {
     });
   });
 });
+
+describe('sandbox mobile asset export protocol', () => {
+  it('exports iOS assets at 1x, 2x, 3x scales with Contents.json', async () => {
+    posted.length = 0;
+    await send({ type: 'REQUEST_MOBILE_EXPORT', target: 'ios' });
+
+    const res = posted.find((m) => m.type === 'MOBILE_EXPORT_RESULT');
+    expect(res).toBeDefined();
+    const payload = res?.payload as { target: string; name: string; files: Array<{ name: string; bytes?: Uint8Array; text?: string }> };
+    expect(payload.target).toBe('ios');
+    expect(payload.files).toHaveLength(4);
+    expect(payload.files.some((f) => f.name.endsWith('Contents.json'))).toBe(true);
+    expect(payload.files.some((f) => f.name.endsWith('.png'))).toBe(true);
+    expect(payload.files.some((f) => f.name.endsWith('@2x.png'))).toBe(true);
+    expect(payload.files.some((f) => f.name.endsWith('@3x.png'))).toBe(true);
+  });
+
+  it('exports Android assets at mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi scales', async () => {
+    posted.length = 0;
+    await send({ type: 'REQUEST_MOBILE_EXPORT', target: 'android' });
+
+    const res = posted.find((m) => m.type === 'MOBILE_EXPORT_RESULT');
+    expect(res).toBeDefined();
+    const payload = res?.payload as { target: string; name: string; files: Array<{ name: string }> };
+    expect(payload.target).toBe('android');
+    expect(payload.files).toHaveLength(5);
+    expect(payload.files.some((f) => f.name.includes('drawable-mdpi'))).toBe(true);
+    expect(payload.files.some((f) => f.name.includes('drawable-hdpi'))).toBe(true);
+    expect(payload.files.some((f) => f.name.includes('drawable-xhdpi'))).toBe(true);
+    expect(payload.files.some((f) => f.name.includes('drawable-xxhdpi'))).toBe(true);
+    expect(payload.files.some((f) => f.name.includes('drawable-xxxhdpi'))).toBe(true);
+  });
+
+  it('reports EXPORT_ERROR when no node is selected for mobile export', async () => {
+    posted.length = 0;
+    selection.length = 0;
+    await send({ type: 'REQUEST_MOBILE_EXPORT', target: 'ios' });
+
+    expect(posted[0]).toMatchObject({ type: 'EXPORT_ERROR' });
+  });
+});

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, FileCode, Image, FileDown } from 'lucide-react';
+import { Download, FileCode, Image, FileDown, Smartphone } from 'lucide-react';
 import { UIToPluginMessage } from '../../types/messages';
 
 interface QuickExportProps {
@@ -70,6 +70,38 @@ export const QuickExport: React.FC<QuickExportProps> = ({ onExport, isExporting,
         >
           <Image size={15} className="text-blue mb-1 group-hover:scale-110 transition" />
           <span className="text-[10px] font-medium">PNG @2x</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+        <button
+          disabled={isExporting}
+          onClick={() =>
+            onExport({
+              type: 'REQUEST_MOBILE_EXPORT',
+              target: 'ios',
+            })
+          }
+          className="flex items-center justify-center gap-1.5 p-1.5 rounded-md border border-surface1 bg-surface0 hover:bg-surface1/60 text-subtext1 hover:border-surface2 transition disabled:opacity-50 group text-[10px] font-medium"
+          title="Download iOS asset catalog (1x, 2x, 3x PNG + Contents.json in a .zip)"
+        >
+          <Smartphone size={13} className="text-mauve" />
+          <span>iOS Asset (.zip)</span>
+        </button>
+
+        <button
+          disabled={isExporting}
+          onClick={() =>
+            onExport({
+              type: 'REQUEST_MOBILE_EXPORT',
+              target: 'android',
+            })
+          }
+          className="flex items-center justify-center gap-1.5 p-1.5 rounded-md border border-surface1 bg-surface0 hover:bg-surface1/60 text-subtext1 hover:border-surface2 transition disabled:opacity-50 group text-[10px] font-medium"
+          title="Download Android drawable resources (mdpi to xxxhdpi PNGs in a .zip)"
+        >
+          <Smartphone size={13} className="text-green" />
+          <span>Android (.zip)</span>
         </button>
       </div>
     </div>
