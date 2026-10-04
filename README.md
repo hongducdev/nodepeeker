@@ -2,6 +2,8 @@
 
 > A fast, zero-subscription Figma plugin replacing paid Dev Mode for free accounts. Get instant Tailwind CSS classes, pure CSS declarations, an interactive visual box model, quick color copying, 1-click asset exports, MP4/GIF animation export, and an integrated **Local MCP Server** feeding design data directly into **Cursor**, **Antigravity IDE**, and **pi.dev**.
 
+**English** | [Tiếng Việt](README.vi.md)
+
 [![Figma Plugin API](https://img.shields.io/badge/Figma_Plugin_API-v1.0.0-1abc9c.svg)](https://www.figma.com/plugin-docs/)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38bdf8.svg)](https://tailwindcss.com/)
