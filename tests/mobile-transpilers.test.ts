@@ -97,6 +97,20 @@ describe('React Native Transpiler', () => {
     expect(code).toContain('fontFamily: \'Inter\'');
     expect(code).toContain('color: \'#CDD6F4\'');
   });
+
+  it('substitutes bound design tokens when useTokens is true', () => {
+    const frameWithVars = mockFrame({
+      variables: [
+        { id: 'v1', field: 'fill', variableName: 'colors/primary-500', cssVariable: 'var(--colors-primary-500)' },
+        { id: 'v2', field: 'cornerRadius', variableName: 'radius/lg', cssVariable: 'var(--radius-lg)' },
+        { id: 'v3', field: 'stroke', variableName: 'colors/border', cssVariable: 'var(--colors-border)' },
+      ],
+    });
+    const code = transpileToReactNative(frameWithVars, { useTokens: true });
+    expect(code).toContain('backgroundColor: tokens.colorsPrimary500');
+    expect(code).toContain('borderRadius: tokens.radiusLg');
+    expect(code).toContain('borderColor: tokens.colorsBorder');
+  });
 });
 
 describe('Flutter Transpiler', () => {
@@ -120,6 +134,20 @@ describe('Flutter Transpiler', () => {
     expect(code).toContain('fontFamily: \'Inter\'');
     expect(code).toContain('color: const Color(0xFFCDD6F4)');
   });
+
+  it('substitutes bound design tokens when useTokens is true', () => {
+    const frameWithVars = mockFrame({
+      variables: [
+        { id: 'v1', field: 'fill', variableName: 'colors/primary-500', cssVariable: 'var(--colors-primary-500)' },
+        { id: 'v2', field: 'cornerRadius', variableName: 'radius/lg', cssVariable: 'var(--radius-lg)' },
+        { id: 'v3', field: 'stroke', variableName: 'colors/border', cssVariable: 'var(--colors-border)' },
+      ],
+    });
+    const code = transpileToFlutter(frameWithVars, { useTokens: true });
+    expect(code).toContain('color: AppColors.colorsPrimary500');
+    expect(code).toContain('borderRadius: BorderRadius.circular(AppRadius.radiusLg)');
+    expect(code).toContain('border: Border.all(color: AppColors.colorsBorder');
+  });
 });
 
 describe('SwiftUI Transpiler', () => {
@@ -138,6 +166,18 @@ describe('SwiftUI Transpiler', () => {
     expect(code).toContain('.font(.custom("Inter", size: 20))');
     expect(code).toContain('.fontWeight(.bold)');
   });
+
+  it('substitutes bound design tokens when useTokens is true', () => {
+    const frameWithVars = mockFrame({
+      variables: [
+        { id: 'v1', field: 'fill', variableName: 'colors/primary-500', cssVariable: 'var(--colors-primary-500)' },
+        { id: 'v2', field: 'cornerRadius', variableName: 'radius/lg', cssVariable: 'var(--radius-lg)' },
+      ],
+    });
+    const code = transpileToSwiftUI(frameWithVars, { useTokens: true });
+    expect(code).toContain('.background(Color("colors/primary-500"))');
+    expect(code).toContain('.cornerRadius(Theme.radiusLg)');
+  });
 });
 
 describe('Compose Transpiler', () => {
@@ -155,5 +195,17 @@ describe('Compose Transpiler', () => {
     expect(code).toContain('Text(');
     expect(code).toContain('fontSize = 20.sp');
     expect(code).toContain('fontWeight = FontWeight.Bold');
+  });
+
+  it('substitutes bound design tokens when useTokens is true', () => {
+    const frameWithVars = mockFrame({
+      variables: [
+        { id: 'v1', field: 'fill', variableName: 'colors/primary-500', cssVariable: 'var(--colors-primary-500)' },
+        { id: 'v2', field: 'cornerRadius', variableName: 'radius/lg', cssVariable: 'var(--radius-lg)' },
+      ],
+    });
+    const code = transpileToCompose(frameWithVars, { useTokens: true });
+    expect(code).toContain('.background(color = AppColors.ColorsPrimary500');
+    expect(code).toContain('RoundedCornerShape(AppRadius.RadiusLg)');
   });
 });

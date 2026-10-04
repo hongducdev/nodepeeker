@@ -1,9 +1,21 @@
-import type { NodeInspectionData } from '../../types/messages';
-import { toHex8 } from '../color';
+import type { NodeInspectionData, BoundVariableToken } from '../../types/messages.js';
+import { toHex8 } from '../color.js';
+import { getPlatformToken } from './token-utils.js';
 
-export function transpileToReactNative(data: NodeInspectionData): string {
+export function transpileToReactNative(
+  data: NodeInspectionData,
+  options?: { useTokens?: boolean }
+): string {
   const styles: string[] = [];
   const { boxModel, layoutMode, primaryAxisAlign, counterAxisAlign, sizing, position, border, shadows, opacity, typography, colors } = data;
+
+  const useTokens = Boolean(options?.useTokens && data.variables && data.variables.length > 0);
+  const varMap = new Map<string, BoundVariableToken>();
+  if (useTokens && data.variables) {
+    for (const v of data.variables) {
+      varMap.set(v.field, v);
+    }
+  }
 
   // 1. Layout & Flexbox
   if (position?.absolute) {
@@ -42,50 +54,103 @@ export function transpileToReactNative(data: NodeInspectionData): string {
     }
   }
 
-  if (boxModel.gap > 0) {
-    styles.push(`  gap: ${boxModel.gap},`);
+  if (boxModel.gap > 0 || varMap.has('itemSpacing')) {
+    if (varMap.has('itemSpacing')) {
+      styles.push(`  gap: ${getPlatformToken(varMap.get('itemSpacing')!, 'react-native')},`);
+    } else {
+      styles.push(`  gap: ${boxModel.gap},`);
+    }
   }
 
   // 2. Sizing
-  if (!sizing?.hugHorizontal && boxModel.width > 0) {
-    styles.push(`  width: ${Math.round(boxModel.width)},`);
+  if (!sizing?.hugHorizontal && (boxModel.width > 0 || varMap.has('width'))) {
+    if (varMap.has('width')) {
+      styles.push(`  width: ${getPlatformToken(varMap.get('width')!, 'react-native')},`);
+    } else {
+      styles.push(`  width: ${Math.round(boxModel.width)},`);
+    }
   }
-  if (!sizing?.hugVertical && boxModel.height > 0) {
-    styles.push(`  height: ${Math.round(boxModel.height)},`);
+  if (!sizing?.hugVertical && (boxModel.height > 0 || varMap.has('height'))) {
+    if (varMap.has('height')) {
+      styles.push(`  height: ${getPlatformToken(varMap.get('height')!, 'react-native')},`);
+    } else {
+      styles.push(`  height: ${Math.round(boxModel.height)},`);
+    }
   }
 
   // 3. Spacing (Padding)
   const { paddingTop: pt, paddingRight: pr, paddingBottom: pb, paddingLeft: pl } = boxModel;
-  if (pt === pb && pr === pl && pt === pr && pt > 0) {
-    styles.push(`  padding: ${pt},`);
+  if (varMap.has('padding')) {
+    styles.push(`  padding: ${getPlatformToken(varMap.get('padding')!, 'react-native')},`);
+  } else if (pt === pb && pr === pl && pt === pr && pt > 0) {
+    if (varMap.has('paddingTop')) {
+      styles.push(`  padding: ${getPlatformToken(varMap.get('paddingTop')!, 'react-native')},`);
+    } else {
+      styles.push(`  padding: ${pt},`);
+    }
   } else if (pt === pb && pr === pl && (pt > 0 || pr > 0)) {
-    if (pt > 0) styles.push(`  paddingVertical: ${pt},`);
-    if (pr > 0) styles.push(`  paddingHorizontal: ${pr},`);
+    if (pt > 0) {
+      styles.push(
+        `  paddingVertical: ${varMap.has('paddingTop') ? getPlatformToken(varMap.get('paddingTop')!, 'react-native') : pt},`
+      );
+    }
+    if (pr > 0) {
+      styles.push(
+        `  paddingHorizontal: ${varMap.has('paddingRight') ? getPlatformToken(varMap.get('paddingRight')!, 'react-native') : pr},`
+      );
+    }
   } else {
-    if (pt > 0) styles.push(`  paddingTop: ${pt},`);
-    if (pr > 0) styles.push(`  paddingRight: ${pr},`);
-    if (pb > 0) styles.push(`  paddingBottom: ${pb},`);
-    if (pl > 0) styles.push(`  paddingLeft: ${pl},`);
+    if (pt > 0 || varMap.has('paddingTop')) {
+      styles.push(`  paddingTop: ${varMap.has('paddingTop') ? getPlatformToken(varMap.get('paddingTop')!, 'react-native') : pt},`);
+    }
+    if (pr > 0 || varMap.has('paddingRight')) {
+      styles.push(`  paddingRight: ${varMap.has('paddingRight') ? getPlatformToken(varMap.get('paddingRight')!, 'react-native') : pr},`);
+    }
+    if (pb > 0 || varMap.has('paddingBottom')) {
+      styles.push(`  paddingBottom: ${varMap.has('paddingBottom') ? getPlatformToken(varMap.get('paddingBottom')!, 'react-native') : pb},`);
+    }
+    if (pl > 0 || varMap.has('paddingLeft')) {
+      styles.push(`  paddingLeft: ${varMap.has('paddingLeft') ? getPlatformToken(varMap.get('paddingLeft')!, 'react-native') : pl},`);
+    }
   }
 
   // 4. Background & Colors
-  const fill = colors.find((c) => c.source === 'fill');
-  if (fill) {
-    const bg = fill.opacity < 1 ? toHex8(fill.hex, fill.opacity) : fill.hex;
+  if (varMap.has('fill')) {
+    const fillTok = getPlatformToken(varMap.get('fill')!, 'react-native');
     if (data.type === 'TEXT') {
-      styles.push(`  color: '${bg}',`);
+      styles.push(`  color: ${fillTok},`);
     } else {
-      styles.push(`  backgroundColor: '${bg}',`);
+      styles.push(`  backgroundColor: ${fillTok},`);
+    }
+  } else {
+    const fill = colors.find((c) => c.source === 'fill');
+    if (fill) {
+      const bg = fill.opacity < 1 ? toHex8(fill.hex, fill.opacity) : fill.hex;
+      if (data.type === 'TEXT') {
+        styles.push(`  color: '${bg}',`);
+      } else {
+        styles.push(`  backgroundColor: '${bg}',`);
+      }
     }
   }
 
   // 5. Border & Corner Radius
   if (border && border.strokeWeight > 0) {
-    const borderCol = border.opacity !== undefined && border.opacity < 1
-      ? toHex8(border.color, border.opacity)
-      : border.color;
-    styles.push(`  borderWidth: ${border.strokeWeight},`);
-    styles.push(`  borderColor: '${borderCol}',`);
+    if (varMap.has('strokeWeight')) {
+      styles.push(`  borderWidth: ${getPlatformToken(varMap.get('strokeWeight')!, 'react-native')},`);
+    } else {
+      styles.push(`  borderWidth: ${border.strokeWeight},`);
+    }
+
+    if (varMap.has('stroke')) {
+      styles.push(`  borderColor: ${getPlatformToken(varMap.get('stroke')!, 'react-native')},`);
+    } else {
+      const borderCol = border.opacity !== undefined && border.opacity < 1
+        ? toHex8(border.color, border.opacity)
+        : border.color;
+      styles.push(`  borderColor: '${borderCol}',`);
+    }
+
     if (border.strokeStyle === 'dashed') {
       styles.push(`  borderStyle: 'dashed',`);
     } else if (border.strokeStyle === 'dotted') {
@@ -94,7 +159,9 @@ export function transpileToReactNative(data: NodeInspectionData): string {
   }
 
   const { cornerRadius } = boxModel;
-  if (typeof cornerRadius === 'number' && cornerRadius > 0) {
+  if (varMap.has('cornerRadius')) {
+    styles.push(`  borderRadius: ${getPlatformToken(varMap.get('cornerRadius')!, 'react-native')},`);
+  } else if (typeof cornerRadius === 'number' && cornerRadius > 0) {
     styles.push(`  borderRadius: ${cornerRadius},`);
   } else if (Array.isArray(cornerRadius)) {
     const [tl, tr, br, bl] = cornerRadius;
@@ -106,7 +173,11 @@ export function transpileToReactNative(data: NodeInspectionData): string {
 
   // 6. Typography
   if (typography) {
-    if (typography.fontSize) styles.push(`  fontSize: ${typography.fontSize},`);
+    if (varMap.has('fontSize')) {
+      styles.push(`  fontSize: ${getPlatformToken(varMap.get('fontSize')!, 'react-native')},`);
+    } else if (typography.fontSize) {
+      styles.push(`  fontSize: ${typography.fontSize},`);
+    }
     if (typography.fontFamily) styles.push(`  fontFamily: '${typography.fontFamily}',`);
     if (typography.fontWeight) {
       styles.push(`  fontWeight: '${String(typography.fontWeight)}',`);

@@ -3,6 +3,7 @@ import type {
   BridgeStatePayload,
   FileContext,
   PluginToUIMessage,
+  PreferredPlatform,
   SelectionState,
   UIToPluginMessage,
   VideoExportOptions,
@@ -56,6 +57,17 @@ export const App: React.FC = () => {
     state: 'needs-token',
     enabled: true,
   });
+  const [preferredPlatform, setPreferredPlatform] = useState<PreferredPlatform>(() => {
+    try {
+      const stored = localStorage.getItem('nodepeeker.preference.platform');
+      if (stored && ['css', 'react-native', 'flutter', 'swiftui', 'compose'].includes(stored)) {
+        return stored as PreferredPlatform;
+      }
+    } catch {
+      // fallback
+    }
+    return 'css';
+  });
   const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   // Kept apart from isExporting: a video encode runs for seconds, and a selection change
@@ -73,6 +85,19 @@ export const App: React.FC = () => {
 
   const selectedNodeId = selection.kind === 'single' ? selection.data.id : null;
   const svgContent = svgCache && svgCache.nodeId === selectedNodeId ? svgCache.content : undefined;
+
+  const handleSelectPlatform = useCallback((platform: PreferredPlatform) => {
+    setPreferredPlatform(platform);
+    try {
+      localStorage.setItem('nodepeeker.preference.platform', platform);
+    } catch {
+      // ignore
+    }
+    parent.postMessage(
+      { pluginMessage: { type: 'SET_PREFERRED_PLATFORM', platform } satisfies UIToPluginMessage },
+      '*'
+    );
+  }, []);
 
   const handleExport = useCallback((msg: UIToPluginMessage) => {
     setIsExporting(true);
@@ -122,6 +147,16 @@ export const App: React.FC = () => {
 
       if (msg.type === 'FILE_CONTEXT') {
         setFileContext(msg.payload);
+        return;
+      }
+
+      if (msg.type === 'USER_PREFERENCES') {
+        setPreferredPlatform(msg.payload.preferredPlatform);
+        try {
+          localStorage.setItem('nodepeeker.preference.platform', msg.payload.preferredPlatform);
+        } catch {
+          // ignore
+        }
         return;
       }
 
@@ -296,6 +331,8 @@ export const App: React.FC = () => {
               onRequestSvg={handleRequestSvg}
               onCopy={copy}
               copiedText={copiedText}
+              preferredPlatform={preferredPlatform}
+              onSelectPlatform={handleSelectPlatform}
             />
             <QuickExport
               onExport={handleExport}
@@ -316,6 +353,8 @@ export const App: React.FC = () => {
         isOpen={isBridgeModalOpen}
         onClose={() => setIsBridgeModalOpen(false)}
         bridgeState={bridgeState}
+        preferredPlatform={preferredPlatform}
+        onSelectPlatform={handleSelectPlatform}
         onSetToken={handleSetBridgeToken}
         onToggleEnabled={handleToggleBridge}
       />

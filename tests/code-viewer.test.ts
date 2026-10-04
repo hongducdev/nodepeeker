@@ -7,9 +7,15 @@ import { NodeInspectionData } from '../src/types/messages';
 // renderToStaticMarkup skips useEffect, so the initial (default) tab is what we
 // observe -- which is exactly the contract under test. `svg` is now a separate
 // lazily-fetched prop rather than a field on the inspection data.
-const render = (data: NodeInspectionData, svg?: string) =>
+const render = (data: NodeInspectionData, svg?: string, preferredPlatform?: any) =>
   renderToStaticMarkup(
-    createElement(CodeViewer, { data, svg, onCopy: () => {}, copiedText: null })
+    createElement(CodeViewer, {
+      data,
+      svg,
+      onCopy: () => {},
+      copiedText: null,
+      preferredPlatform,
+    })
   );
 
 // Assertions target what a user reads, so unescape entities and drop tags.
@@ -48,14 +54,14 @@ const baseData = (overrides: Partial<NodeInspectionData> = {}): NodeInspectionDa
 });
 
 describe('CodeViewer', () => {
-  it('offers CSS, Tailwind and SVG tabs', () => {
+  it('offers CSS, Mobile dropdown and SVG tabs', () => {
     const html = render(baseData(), '<svg/>');
     expect(html).toContain('>CSS<');
-    expect(html).toContain('>Tailwind<');
+    expect(html).toContain('>Mobile<');
     expect(html).toContain('>SVG<');
   });
 
-  it('still defaults to the CSS tab', () => {
+  it('still defaults to the CSS tab for web devs', () => {
     const html = render(baseData(), '<svg viewBox="0 0 4 4"/>');
     // CSS declaration from data.css is rendered...
     expect(textOf(html)).toContain('display');
@@ -63,6 +69,21 @@ describe('CodeViewer', () => {
     // ...and no SVG-only text is, because SVG is not the default tab.
     // (Asserting on visible text: raw markup is split across token spans.)
     expect(textOf(html)).not.toContain('viewBox');
+  });
+
+  it('defaults to mobile framework when preferredPlatform is set', () => {
+    const html = render(baseData(), undefined, 'flutter');
+    expect(textOf(html)).toContain('Container(');
+  });
+
+  it('substitutes bound design tokens by default without needing manual toggle', () => {
+    const dataWithVar = baseData({
+      variables: [
+        { id: 'v1', field: 'fill', variableName: 'colors/primary', cssVariable: 'var(--colors-primary)' },
+      ],
+    });
+    const html = render(dataWithVar);
+    expect(html).toContain('var(--colors-primary)');
   });
 
   it('advertises the 3 / S shortcut for the SVG tab', () => {

@@ -3,7 +3,7 @@ import { extractNodeData } from './extractors';
 import { uint8ArrayToString } from './color-utils';
 import { clampFps } from '../utils/video-options';
 import { resolveVideoFrame, extractRawGifBytes } from './video-frame';
-import type { VideoScale, VideoQuality } from '../types/messages';
+import type { VideoScale, VideoQuality, PreferredPlatform } from '../types/messages';
 import { measureDistance, type DistanceMeasurement } from '../utils/distance';
 import { bridgeService } from './bridge-service';
 
@@ -168,7 +168,32 @@ figma.ui.onmessage = async (msg: UIToPluginMessage) => {
     }
     figma.ui.postMessage({ type: 'FILE_CONTEXT', ...readFileContext() });
     figma.ui.postMessage({ type: 'BRIDGE_STATUS', payload: bridgeService.getStatus() });
+
+    let preferredPlatform: PreferredPlatform = 'css';
+    try {
+      if (typeof figma.clientStorage?.getAsync === 'function') {
+        const stored = await figma.clientStorage.getAsync('nodepeeker.preference.platform');
+        if (typeof stored === 'string' && ['css', 'react-native', 'flutter', 'swiftui', 'compose'].includes(stored)) {
+          preferredPlatform = stored as PreferredPlatform;
+        }
+      }
+    } catch {
+      // fallback
+    }
+    figma.ui.postMessage({ type: 'USER_PREFERENCES', payload: { preferredPlatform } });
+
     await handleSelectionChange();
+    return;
+  }
+
+  if (msg.type === 'SET_PREFERRED_PLATFORM') {
+    try {
+      if (typeof figma.clientStorage?.setAsync === 'function') {
+        void figma.clientStorage.setAsync('nodepeeker.preference.platform', msg.platform);
+      }
+    } catch {
+      // storage unavailable
+    }
     return;
   }
 

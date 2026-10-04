@@ -47,8 +47,21 @@ export async function extractBoundVariables(node: SceneNode): Promise<BoundVaria
 
     // Check codeSyntax.WEB first per Advisor recommendation
     let cssVar = '';
-    if (v.codeSyntax && typeof v.codeSyntax.WEB === 'string' && v.codeSyntax.WEB.trim()) {
-      const syntax = v.codeSyntax.WEB.trim();
+    const codeSyntax: BoundVariableToken['codeSyntax'] = {};
+    if (v.codeSyntax) {
+      if (typeof v.codeSyntax.WEB === 'string' && v.codeSyntax.WEB.trim()) {
+        codeSyntax.web = v.codeSyntax.WEB.trim();
+      }
+      if (typeof v.codeSyntax.ANDROID === 'string' && v.codeSyntax.ANDROID.trim()) {
+        codeSyntax.android = v.codeSyntax.ANDROID.trim();
+      }
+      if (typeof v.codeSyntax.iOS === 'string' && v.codeSyntax.iOS.trim()) {
+        codeSyntax.ios = v.codeSyntax.iOS.trim();
+      }
+    }
+
+    if (codeSyntax.web) {
+      const syntax = codeSyntax.web;
       cssVar = syntax.startsWith('var(') ? syntax : `var(${syntax})`;
     } else {
       cssVar = `var(${toCssVariableName(v.name)})`;
@@ -59,6 +72,7 @@ export async function extractBoundVariables(node: SceneNode): Promise<BoundVaria
       field,
       variableName: v.name,
       cssVariable: cssVar,
+      codeSyntax: Object.keys(codeSyntax).length > 0 ? codeSyntax : undefined,
       resolvedValue,
     });
   };

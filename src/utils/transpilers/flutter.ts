@@ -1,21 +1,41 @@
-import type { NodeInspectionData } from '../../types/messages';
-import { toArgbColor } from '../color';
+import type { NodeInspectionData, BoundVariableToken } from '../../types/messages.js';
+import { toArgbColor } from '../color.js';
+import { getPlatformToken } from './token-utils.js';
 
-export function transpileToFlutter(data: NodeInspectionData): string {
+export function transpileToFlutter(
+  data: NodeInspectionData,
+  options?: { useTokens?: boolean }
+): string {
   const { boxModel, border, shadows, opacity, typography, colors, type } = data;
+
+  const useTokens = Boolean(options?.useTokens && data.variables && data.variables.length > 0);
+  const varMap = new Map<string, BoundVariableToken>();
+  if (useTokens && data.variables) {
+    for (const v of data.variables) {
+      varMap.set(v.field, v);
+    }
+  }
 
   if (type === 'TEXT' && typography) {
     const textParams: string[] = [];
-    if (typography.fontSize) textParams.push(`  fontSize: ${typography.fontSize},`);
+    if (varMap.has('fontSize')) {
+      textParams.push(`  fontSize: ${getPlatformToken(varMap.get('fontSize')!, 'flutter')},`);
+    } else if (typography.fontSize) {
+      textParams.push(`  fontSize: ${typography.fontSize},`);
+    }
     if (typography.fontFamily) textParams.push(`  fontFamily: '${typography.fontFamily}',`);
     if (typography.fontWeight) {
       const w = String(typography.fontWeight);
       const weightNum = w.replace(/\D/g, '') || (w.toLowerCase().includes('bold') ? '700' : '400');
       textParams.push(`  fontWeight: FontWeight.w${weightNum},`);
     }
-    const fill = colors.find((c) => c.source === 'fill');
-    if (fill) {
-      textParams.push(`  color: const ${toArgbColor(fill.hex, fill.opacity)},`);
+    if (varMap.has('fill')) {
+      textParams.push(`  color: ${getPlatformToken(varMap.get('fill')!, 'flutter')},`);
+    } else {
+      const fill = colors.find((c) => c.source === 'fill');
+      if (fill) {
+        textParams.push(`  color: const ${toArgbColor(fill.hex, fill.opacity)},`);
+      }
     }
     return `const TextStyle(\n${textParams.join('\n')}\n);`;
   }
@@ -23,12 +43,22 @@ export function transpileToFlutter(data: NodeInspectionData): string {
   const containerParams: string[] = [];
 
   // 1. Dimensions
-  if (boxModel.width > 0) containerParams.push(`  width: ${Math.round(boxModel.width)},`);
-  if (boxModel.height > 0) containerParams.push(`  height: ${Math.round(boxModel.height)},`);
+  if (varMap.has('width')) {
+    containerParams.push(`  width: ${getPlatformToken(varMap.get('width')!, 'flutter')},`);
+  } else if (boxModel.width > 0) {
+    containerParams.push(`  width: ${Math.round(boxModel.width)},`);
+  }
+  if (varMap.has('height')) {
+    containerParams.push(`  height: ${getPlatformToken(varMap.get('height')!, 'flutter')},`);
+  } else if (boxModel.height > 0) {
+    containerParams.push(`  height: ${Math.round(boxModel.height)},`);
+  }
 
   // 2. Padding
   const { paddingTop: pt, paddingRight: pr, paddingBottom: pb, paddingLeft: pl } = boxModel;
-  if (pt === pb && pr === pl && pt === pr && pt > 0) {
+  if (varMap.has('padding')) {
+    containerParams.push(`  padding: ${getPlatformToken(varMap.get('padding')!, 'flutter')},`);
+  } else if (pt === pb && pr === pl && pt === pr && pt > 0) {
     containerParams.push(`  padding: const EdgeInsets.all(${pt}),`);
   } else if (pt === pb && pr === pl && (pt > 0 || pr > 0)) {
     const parts: string[] = [];
@@ -46,13 +76,19 @@ export function transpileToFlutter(data: NodeInspectionData): string {
 
   // 3. Decoration (Background, Border, Radius, Shadows)
   const decorParams: string[] = [];
-  const fill = colors.find((c) => c.source === 'fill');
-  if (fill) {
-    decorParams.push(`    color: const ${toArgbColor(fill.hex, fill.opacity)},`);
+  if (varMap.has('fill')) {
+    decorParams.push(`    color: ${getPlatformToken(varMap.get('fill')!, 'flutter')},`);
+  } else {
+    const fill = colors.find((c) => c.source === 'fill');
+    if (fill) {
+      decorParams.push(`    color: const ${toArgbColor(fill.hex, fill.opacity)},`);
+    }
   }
 
   const { cornerRadius } = boxModel;
-  if (typeof cornerRadius === 'number' && cornerRadius > 0) {
+  if (varMap.has('cornerRadius')) {
+    decorParams.push(`    borderRadius: BorderRadius.circular(${getPlatformToken(varMap.get('cornerRadius')!, 'flutter')}),`);
+  } else if (typeof cornerRadius === 'number' && cornerRadius > 0) {
     decorParams.push(`    borderRadius: BorderRadius.circular(${cornerRadius}),`);
   } else if (Array.isArray(cornerRadius)) {
     const [tl, tr, br, bl] = cornerRadius;
@@ -67,8 +103,13 @@ export function transpileToFlutter(data: NodeInspectionData): string {
   }
 
   if (border && border.strokeWeight > 0) {
-    const borderCol = toArgbColor(border.color, border.opacity ?? 1);
-    decorParams.push(`    border: Border.all(color: const ${borderCol}, width: ${border.strokeWeight}),`);
+    const borderCol = varMap.has('stroke')
+      ? getPlatformToken(varMap.get('stroke')!, 'flutter')
+      : `const ${toArgbColor(border.color, border.opacity ?? 1)}`;
+    const borderWidth = varMap.has('strokeWeight')
+      ? getPlatformToken(varMap.get('strokeWeight')!, 'flutter')
+      : border.strokeWeight;
+    decorParams.push(`    border: Border.all(color: ${borderCol}, width: ${borderWidth}),`);
   }
 
   if (shadows && shadows.length > 0) {

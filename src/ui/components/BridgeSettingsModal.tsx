@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Radio, Check, Power, Sparkles, Copy } from 'lucide-react';
-import type { BridgeStatePayload } from '../../types/messages';
+import { X, Radio, Check, Power, Sparkles, Copy, Monitor } from 'lucide-react';
+import type { BridgeStatePayload, PreferredPlatform } from '../../types/messages';
 
 interface BridgeSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   bridgeState: BridgeStatePayload;
+  preferredPlatform?: PreferredPlatform;
+  onSelectPlatform?: (platform: PreferredPlatform) => void;
   onSetToken: (token: string) => void;
   onToggleEnabled: (enabled: boolean) => void;
 }
@@ -14,6 +16,8 @@ export const BridgeSettingsModal: React.FC<BridgeSettingsModalProps> = ({
   isOpen,
   onClose,
   bridgeState,
+  preferredPlatform,
+  onSelectPlatform,
   onSetToken,
   onToggleEnabled,
 }) => {
@@ -136,6 +140,28 @@ export const BridgeSettingsModal: React.FC<BridgeSettingsModalProps> = ({
               <Power size={12} />
               <span>{bridgeState.enabled ? 'Enabled' : 'Disabled'}</span>
             </button>
+          </div>
+
+          {/* Developer Platform Preference */}
+          <div className="p-2.5 rounded-lg bg-surface0/60 border border-surface1 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-subtext0">
+                <Monitor size={12} className="text-overlay1" />
+                <span>Preferred Platform</span>
+              </div>
+              <span className="text-[9px] font-mono text-overlay1 uppercase">Saved</span>
+            </div>
+            <select
+              value={preferredPlatform ?? 'css'}
+              onChange={(e) => onSelectPlatform?.(e.target.value as PreferredPlatform)}
+              className="w-full px-2 py-1 text-xs font-mono rounded bg-surface0 border border-surface1 text-text focus:outline-none focus:border-blue cursor-pointer transition"
+            >
+              <option value="css">Web: Pure CSS</option>
+              <option value="react-native">Mobile: React Native (StyleSheet)</option>
+              <option value="flutter">Mobile: Flutter (Dart Widget)</option>
+              <option value="swiftui">Mobile: iOS (SwiftUI)</option>
+              <option value="compose">Mobile: Android (Jetpack Compose)</option>
+            </select>
           </div>
 
           {/* Update Available Banner */}

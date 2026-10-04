@@ -62,6 +62,11 @@ export interface BoundVariableToken {
   field: string;
   variableName: string;
   cssVariable: string;
+  codeSyntax?: {
+    web?: string;
+    android?: string;
+    ios?: string;
+  };
   resolvedValue?: string | number;
 }
 
@@ -165,9 +170,16 @@ export interface MobileExportFile {
   text?: string;
 }
 
+export type PreferredPlatform = 'css' | 'react-native' | 'flutter' | 'swiftui' | 'compose';
+
+export interface UserPreferences {
+  preferredPlatform: PreferredPlatform;
+}
+
 export type PluginToUIMessage =
   | { type: 'SELECTION_CHANGE'; payload: SelectionState }
   | { type: 'FILE_CONTEXT'; payload: FileContext }
+  | { type: 'USER_PREFERENCES'; payload: UserPreferences }
   | { type: 'BRIDGE_STATUS'; payload: BridgeStatePayload }
   | {
       type: 'EXPORT_RESULT';
@@ -191,6 +203,7 @@ export type UIToPluginMessage =
     }
   | { type: 'REQUEST_VIDEO_EXPORT'; options: VideoExportOptions }
   | { type: 'REQUEST_MOBILE_EXPORT'; target: MobileExportTarget }
+  | { type: 'SET_PREFERRED_PLATFORM'; platform: PreferredPlatform }
   | { type: 'SET_BRIDGE_TOKEN'; token: string }
   | { type: 'TOGGLE_BRIDGE'; enabled: boolean }
   | { type: 'INIT_REQUEST' };

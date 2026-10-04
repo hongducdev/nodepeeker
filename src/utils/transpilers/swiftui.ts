@@ -1,13 +1,27 @@
-import type { NodeInspectionData } from '../../types/messages';
-import { toSwiftUiColor } from '../color';
+import type { NodeInspectionData, BoundVariableToken } from '../../types/messages.js';
+import { toSwiftUiColor } from '../color.js';
+import { getPlatformToken } from './token-utils.js';
 
-export function transpileToSwiftUI(data: NodeInspectionData): string {
+export function transpileToSwiftUI(
+  data: NodeInspectionData,
+  options?: { useTokens?: boolean }
+): string {
   const { boxModel, border, shadows, opacity, typography, colors, type } = data;
   const modifiers: string[] = [];
 
+  const useTokens = Boolean(options?.useTokens && data.variables && data.variables.length > 0);
+  const varMap = new Map<string, BoundVariableToken>();
+  if (useTokens && data.variables) {
+    for (const v of data.variables) {
+      varMap.set(v.field, v);
+    }
+  }
+
   if (type === 'TEXT' && typography) {
     const textMods: string[] = [];
-    if (typography.fontFamily && typography.fontSize) {
+    if (varMap.has('fontSize')) {
+      textMods.push(`.font(.system(size: ${getPlatformToken(varMap.get('fontSize')!, 'swiftui')}))`);
+    } else if (typography.fontFamily && typography.fontSize) {
       textMods.push(`.font(.custom("${typography.fontFamily}", size: ${typography.fontSize}))`);
     } else if (typography.fontSize) {
       textMods.push(`.font(.system(size: ${typography.fontSize}))`);
@@ -21,15 +35,25 @@ export function transpileToSwiftUI(data: NodeInspectionData): string {
       else if (w.includes('light')) textMods.push(`.fontWeight(.light)`);
     }
 
-    const fill = colors.find((c) => c.source === 'fill');
-    if (fill) {
-      textMods.push(`.foregroundColor(${toSwiftUiColor(fill.hex, fill.opacity)})`);
+    if (varMap.has('fill')) {
+      textMods.push(`.foregroundColor(${getPlatformToken(varMap.get('fill')!, 'swiftui')})`);
+    } else {
+      const fill = colors.find((c) => c.source === 'fill');
+      if (fill) {
+        textMods.push(`.foregroundColor(${toSwiftUiColor(fill.hex, fill.opacity)})`);
+      }
     }
     return `Text("${data.name || 'Text'}")\n  ${textMods.join('\n  ')}`;
   }
 
   // 1. Sizing
-  if (boxModel.width > 0 && boxModel.height > 0) {
+  if (varMap.has('width') && varMap.has('height')) {
+    modifiers.push(`.frame(width: ${getPlatformToken(varMap.get('width')!, 'swiftui')}, height: ${getPlatformToken(varMap.get('height')!, 'swiftui')})`);
+  } else if (varMap.has('width')) {
+    modifiers.push(`.frame(width: ${getPlatformToken(varMap.get('width')!, 'swiftui')}, height: ${Math.round(boxModel.height)})`);
+  } else if (varMap.has('height')) {
+    modifiers.push(`.frame(width: ${Math.round(boxModel.width)}, height: ${getPlatformToken(varMap.get('height')!, 'swiftui')})`);
+  } else if (boxModel.width > 0 && boxModel.height > 0) {
     modifiers.push(`.frame(width: ${Math.round(boxModel.width)}, height: ${Math.round(boxModel.height)})`);
   } else if (boxModel.width > 0) {
     modifiers.push(`.frame(width: ${Math.round(boxModel.width)})`);
@@ -39,7 +63,9 @@ export function transpileToSwiftUI(data: NodeInspectionData): string {
 
   // 2. Padding
   const { paddingTop: pt, paddingRight: pr, paddingBottom: pb, paddingLeft: pl } = boxModel;
-  if (pt === pb && pr === pl && pt === pr && pt > 0) {
+  if (varMap.has('padding')) {
+    modifiers.push(`.padding(${getPlatformToken(varMap.get('padding')!, 'swiftui')})`);
+  } else if (pt === pb && pr === pl && pt === pr && pt > 0) {
     modifiers.push(`.padding(${pt})`);
   } else if (pt === pb && pr === pl && (pt > 0 || pr > 0)) {
     if (pr > 0) modifiers.push(`.padding(.horizontal, ${pr})`);
@@ -49,9 +75,13 @@ export function transpileToSwiftUI(data: NodeInspectionData): string {
   }
 
   // 3. Background
-  const fill = colors.find((c) => c.source === 'fill');
-  if (fill) {
-    modifiers.push(`.background(${toSwiftUiColor(fill.hex, fill.opacity)})`);
+  if (varMap.has('fill')) {
+    modifiers.push(`.background(${getPlatformToken(varMap.get('fill')!, 'swiftui')})`);
+  } else {
+    const fill = colors.find((c) => c.source === 'fill');
+    if (fill) {
+      modifiers.push(`.background(${toSwiftUiColor(fill.hex, fill.opacity)})`);
+    }
   }
 
   // 4. Corner Radius
@@ -62,7 +92,9 @@ export function transpileToSwiftUI(data: NodeInspectionData): string {
   } else if (Array.isArray(cornerRadius) && cornerRadius.length > 0) {
     radius = cornerRadius[0];
   }
-  if (radius > 0) {
+  if (varMap.has('cornerRadius')) {
+    modifiers.push(`.cornerRadius(${getPlatformToken(varMap.get('cornerRadius')!, 'swiftui')})`);
+  } else if (radius > 0) {
     modifiers.push(`.cornerRadius(${radius})`);
   }
 

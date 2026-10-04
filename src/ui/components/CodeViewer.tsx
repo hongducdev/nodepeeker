@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NodeInspectionData } from '../../types/messages';
-import { transpileToTailwind } from '../../utils/tailwind-transpiler';
+import { NodeInspectionData, PreferredPlatform } from '../../types/messages';
 import {
   transpileToReactNative,
   transpileToFlutter,
   transpileToSwiftUI,
   transpileToCompose,
 } from '../../utils/transpilers';
+import { getPlatformToken } from '../../utils/transpilers/token-utils';
 import { Code2, Copy, Check, ChevronDown, Coins } from 'lucide-react';
 import { CodeHighlighter } from './CodeHighlighter';
 import { SvgPreview } from './SvgPreview';
@@ -19,18 +19,19 @@ interface CodeViewerProps {
   onRequestSvg?: () => void;
   onCopy: (val: string, label: string) => void;
   copiedText: string | null;
+  preferredPlatform?: PreferredPlatform;
+  onSelectPlatform?: (platform: PreferredPlatform) => void;
 }
 
 type CodeTab =
   | 'css'
-  | 'tailwind'
   | 'react-native'
   | 'flutter'
   | 'swiftui'
   | 'compose'
   | 'svg';
 
-const PRIMARY_TABS: readonly ('css' | 'tailwind')[] = ['css', 'tailwind'];
+const PRIMARY_TABS: readonly 'css'[] = ['css'];
 
 const MOBILE_TABS: readonly ('react-native' | 'flutter' | 'swiftui' | 'compose')[] = [
   'react-native',
@@ -44,11 +45,10 @@ const TAB_META: Record<
   { label: string; digit?: string; letter?: string; copyLabel: string }
 > = {
   css: { label: 'CSS', digit: '1', letter: 'c', copyLabel: 'CSS styles' },
-  tailwind: { label: 'Tailwind', digit: '2', letter: 't', copyLabel: 'Tailwind classes' },
-  'react-native': { label: 'React Native', digit: '4', letter: 'r', copyLabel: 'React Native StyleSheet' },
-  flutter: { label: 'Flutter', digit: '5', letter: 'f', copyLabel: 'Flutter code' },
-  swiftui: { label: 'SwiftUI', digit: '6', copyLabel: 'SwiftUI code' },
-  compose: { label: 'Compose', digit: '7', copyLabel: 'Compose code' },
+  'react-native': { label: 'React Native', digit: '2', letter: 'r', copyLabel: 'React Native StyleSheet' },
+  flutter: { label: 'Flutter', digit: '4', letter: 'f', copyLabel: 'Flutter code' },
+  swiftui: { label: 'SwiftUI', digit: '5', copyLabel: 'SwiftUI code' },
+  compose: { label: 'Compose', digit: '6', copyLabel: 'Compose code' },
   svg: { label: 'SVG', digit: '3', letter: 's', copyLabel: 'SVG markup' },
 };
 
@@ -95,13 +95,34 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
   onRequestSvg,
   onCopy,
   copiedText,
+  preferredPlatform,
+  onSelectPlatform,
 }) => {
-  // Default to CSS per user request
-  const [tab, setTab] = useState<CodeTab>('css');
-  const [useTokens, setUseTokens] = useState(false);
+  // Default to user's preferred platform (CSS for web, or mobile framework for mobile dev)
+  const [tab, setTab] = useState<CodeTab>(() => {
+    if (preferredPlatform && preferredPlatform !== 'css') {
+      return preferredPlatform;
+    }
+    return 'css';
+  });
+  // Tokens active by default so project variables are always visible immediately
+  const [useTokens, setUseTokens] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const hasVariables = Boolean(data.variables && data.variables.length > 0);
+
+  useEffect(() => {
+    if (preferredPlatform && tab !== 'svg' && tab !== preferredPlatform) {
+      setTab(preferredPlatform);
+    }
+  }, [preferredPlatform]);
+
+  const handleTabChange = (nextTab: CodeTab) => {
+    setTab(nextTab);
+    if (nextTab !== 'svg') {
+      onSelectPlatform?.(nextTab as PreferredPlatform);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -114,8 +135,6 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [mobileOpen]);
-
-  const tailwindCode = transpileToTailwind(data);
 
   const formatCss = () => {
     const cssMap: Record<string, string> = { ...data.css };
@@ -149,11 +168,10 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
 
   const codeByTab: Record<CodeTab, string> = {
     css: formatCss(),
-    tailwind: tailwindCode,
-    'react-native': transpileToReactNative(data),
-    flutter: transpileToFlutter(data),
-    swiftui: transpileToSwiftUI(data),
-    compose: transpileToCompose(data),
+    'react-native': transpileToReactNative(data, { useTokens }),
+    flutter: transpileToFlutter(data, { useTokens }),
+    swiftui: transpileToSwiftUI(data, { useTokens }),
+    compose: transpileToCompose(data, { useTokens }),
     svg: svg ?? '',
   };
   const activeCode = codeByTab[tab];
@@ -178,12 +196,12 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
       const key = e.key.toLowerCase();
       const isPlain = !e.ctrlKey && !e.metaKey && !e.altKey;
       if (isPlain) {
-        const allTabs: CodeTab[] = ['css', 'tailwind', 'svg', 'react-native', 'flutter', 'swiftui', 'compose'];
+        const allTabs: CodeTab[] = ['css', 'svg', 'react-native', 'flutter', 'swiftui', 'compose'];
         const next = allTabs.find(
           (id) => TAB_META[id].digit === e.key || (TAB_META[id].letter && TAB_META[id].letter === key)
         );
         if (next) {
-          setTab(next);
+          handleTabChange(next);
           return;
         }
       }
@@ -221,7 +239,7 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
               return (
                 <button
                   key={id}
-                  onClick={() => setTab(id)}
+                  onClick={() => handleTabChange(id)}
                   className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition ${
                     isActive
                       ? 'bg-surface2 text-blue font-semibold shadow-xs'
@@ -265,7 +283,7 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
                         key={mTab}
                         type="button"
                         onClick={() => {
-                          setTab(mTab);
+                          handleTabChange(mTab);
                           setMobileOpen(false);
                         }}
                         className={`w-full text-left px-2.5 py-1.5 flex items-center justify-between text-[11px] transition ${
@@ -360,20 +378,25 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
       {hasVariables && (
         <div className="mt-1.5 pt-1.5 border-t border-surface0/60 flex flex-wrap items-center gap-1">
           <span className="text-[9px] font-mono uppercase text-overlay1 shrink-0">Tokens:</span>
-          {data.variables!.map((v, i) => (
-            <button
-              key={`${v.id}-${i}`}
-              type="button"
-              onClick={() => onCopy(v.cssVariable, v.variableName)}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface0/80 hover:bg-surface1 text-[9px] font-mono text-subtext0 hover:text-text transition border border-surface1/60"
-              title={`Click to copy ${v.cssVariable} (${v.variableName})`}
-            >
-              <span className="text-peach font-medium">{v.cssVariable}</span>
-              {v.variableName && (
-                <span className="text-overlay1 font-sans text-[8px]">({v.variableName})</span>
-              )}
-            </button>
-          ))}
+          {data.variables!.map((v, i) => {
+            const displayToken = isMobileTab
+              ? getPlatformToken(v, tab as 'react-native' | 'flutter' | 'swiftui' | 'compose')
+              : v.cssVariable;
+            return (
+              <button
+                key={`${v.id}-${i}`}
+                type="button"
+                onClick={() => onCopy(displayToken, v.variableName)}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface0/80 hover:bg-surface1 text-[9px] font-mono text-subtext0 hover:text-text transition border border-surface1/60"
+                title={`Click to copy ${displayToken} (${v.variableName})`}
+              >
+                <span className="text-peach font-medium">{displayToken}</span>
+                {v.variableName && (
+                  <span className="text-overlay1 font-sans text-[8px]">({v.variableName})</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
