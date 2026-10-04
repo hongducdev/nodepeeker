@@ -1,217 +1,354 @@
 # NodePeeker
 
-> A fast, zero-subscription Figma plugin replacing paid Dev Mode for free accounts. Get instant Tailwind CSS classes, pure CSS declarations, an interactive visual box model, quick color copying, 1-click asset exports, and MP4/GIF animation export.
+> A fast, zero-subscription Figma plugin replacing paid Dev Mode for free accounts. Get instant Tailwind CSS classes, pure CSS declarations, an interactive visual box model, quick color copying, 1-click asset exports, MP4/GIF animation export, and an integrated **Local MCP Server** feeding design data directly into **Cursor**, **Antigravity IDE**, and **pi.dev**.
 
 [![Figma Plugin API](https://img.shields.io/badge/Figma_Plugin_API-v1.0.0-1abc9c.svg)](https://www.figma.com/plugin-docs/)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38bdf8.svg)](https://tailwindcss.com/)
-[![Vite](https://img.shields.io/badge/Vite-5.4-646cff.svg)](https://vitejs.dev/)
-[![Offline Safe](https://img.shields.io/badge/Offline-100%25_Safe-success.svg)](#privacy--offline-security)
+[![Vite](https://img.shields.io/badge/Vite-7.0-646cff.svg)](https://vitejs.dev/)
+[![MCP Server](https://img.shields.io/badge/MCP-Streamable_HTTP-blueviolet.svg)](#-local-mcp-bridge-cursor-antigravity-ide-pidev)
 
 ---
 
-## Features
+## Table of Contents
+
+- [Features](#-features)
+- [Architecture & Tech Stack](#-architecture--tech-stack)
+- [Quick Start & Build Commands](#-quick-start--build-commands)
+- [Step-by-Step Installation in Figma](#-step-by-step-installation-in-figma)
+- [Local MCP Bridge (Cursor, Antigravity IDE, pi.dev)](#-local-mcp-bridge-cursor-antigravity-ide-pidev)
+  - [Why NodePeeker MCP?](#why-nodepeeker-mcp)
+  - [Step 1: Start the MCP Broker](#step-1-start-the-mcp-broker)
+  - [Step 2: Connect Figma Plugin to Broker](#step-2-connect-figma-plugin-to-broker)
+  - [Step 3: Configure Your AI Assistant](#step-3-configure-your-ai-assistant)
+    - [Cursor Configuration](#1-cursor)
+    - [Antigravity IDE Configuration](#2-antigravity-ide)
+    - [pi.dev Configuration](#3-pidev)
+  - [Available MCP Tools](#available-mcp-tools)
+- [Troubleshooting MCP](#-troubleshooting-mcp)
+- [Project Structure](#-project-structure)
+- [License](#-license)
+
+---
+
+## 🚀 Features
 
 ### 💻 Inspect Code Viewer (Default: Pure CSS)
 - **Pure CSS First:** Automatically displays standard, clean CSS declarations by default with live color chips, line numbers, and formatted rules ready to paste.
 - **Syntax Highlighting:** Real-time token highlighting for properties, values, units, hex colors, and Tailwind utility categories.
-- **Tailwind CSS Generation:** Easily toggle to Tailwind utility classes with color-coded token badges. The output carries the layer's **real** values rather than presets: shadows are emitted as arbitrary `shadow-[0px_4px_8px_2px_rgba(0,0,0,0.25)]` utilities (never a rounded `shadow-md` name), text line-height and letter-spacing become `leading-*` / `tracking-*`, Hug-sized frames map to `w-fit` / `h-fit`, stretched children to `self-stretch`, absolutely positioned layers to `absolute` plus `left-[…]` / `top-[…]` offsets, and node opacity to `opacity-*`.
-- **SVG Markup:** Switch to the SVG tab for the layer's exported markup, with element and attribute names highlighted and hex fills shown as live color swatches. The tab also renders that markup as a **preview above the code**: the exported SVG in a fixed-height, checkerboard-backed board, scaled down to fit (never up), so artwork and its transparency are visible without reading the markup. The preview reuses the same on-demand export as Copy and Download — it is fetched when the tab is first opened and cached per layer, so nothing extra is exported. The checkerboard background keeps white or dark artwork legible in both the light and dark themes, and when there is no markup yet — still loading, or the export failed — no preview is shown and the code area states the state.
-- **Keyboard Shortcuts:** Press `1` or `C` for CSS, `2` or `T` for Tailwind, `3` or `S` for SVG, and `Ctrl+C` / `Cmd+C` to copy active code.
-- **Quick Launch in Figma:** Press `Ctrl+Alt+P` (Windows) / `Cmd+Option+P` (Mac) to re-run the plugin from anywhere on canvas, or `Shift+I` to pick from the Plugins drawer.
+- **Tailwind CSS Generation:** Easily toggle to Tailwind utility classes with color-coded token badges. Real values are emitted rather than arbitrary presets: custom shadows (`shadow-[0px_4px_8px_2px_rgba(0,0,0,0.25)]`), line-height and letter-spacing (`leading-*` / `tracking-*`), auto-layout Hug sizing (`w-fit` / `h-fit`), stretch (`self-stretch`), and absolute positioning (`absolute` + `left-[…]` / `top-[…]`).
+- **SVG Markup & Visual Preview:** Switch to the SVG tab to inspect raw vector code or view a live SVG preview board on a checkerboard background before copying or downloading.
+- **In-Plugin Shortcuts:** Press `1` or `C` for CSS, `2` or `T` for Tailwind, `3` or `S` for SVG, and `Ctrl+C` / `Cmd+C` to copy active code.
 
 ### 🎨 Quick Color Copier
-- **Automatic Palette Detection:** Extracts all solid fills and strokes applied to the selected layer.
-- **Multi-Format Conversion:** Toggle effortlessly between **HEX**, **RGB**, and **HSL** color spaces.
-- **Single-Click Copying:** Click any color badge or swatch to immediately copy the formatted value to your clipboard.
+- **Automatic Palette Detection:** Extracts solid fills and strokes applied to the selected layer and its immediate children.
+- **Multi-Format Conversion:** Toggle effortlessly between **HEX**, **8-digit HEXA (with alpha)**, **RGB**, and **HSL** color spaces.
+- **Single-Click Copying:** Click any color badge or swatch to copy formatted values to your clipboard.
 
 ### 📦 Visual Box Model
-- **Interactive Diagram:** Clear visual representation of the selected element's box model including outer dimensions ($W \times H$), 4-sided padding (Top, Right, Bottom, Left), auto-layout gaps, and corner radii.
+- **Interactive Diagram:** Outer dimensions ($W \times H$), 4-sided padding (Top, Right, Bottom, Left), auto-layout gaps, and corner radii.
 - **Click-to-Copy:** Click on any dimension or padding metric to copy its exact pixel value directly.
 
 ### 📏 Measure Distance
-- **Select Exactly Two Layers:** The panel switches from the inspector to a distance readout — the **horizontal and vertical gaps** between the layers, the **straight-line edge-to-edge distance**, and which way the second layer sits relative to the first (`Button is to the right of Card`). Any other selection (0, 1, or 3+) keeps the normal inspector.
-- **Alignment and Overlap:** Shared edges — left, right, top, bottom, and shared centre lines — are listed when they line up within a half-pixel, so float drift does not hide a real alignment. When the layers intersect, the gaps read `0` and the **overlap extent** (`width × height`) is shown instead; touching edges are a `0` gap, **not** an overlap.
-- **Copy the Gap:** Click the measurement chip to copy it — `24 px`, or `24 × 12 px` when the layers are separated on both axes.
-- **Panel-Only by Design:** Figma gives plugins no way to draw a ruler on the canvas, so the measurement (a scaled mini-diagram of both boxes plus the numbers) renders in the panel. The plugin stays read-only — it never creates measure nodes, so your file and undo history are untouched.
+- **Select Exactly Two Layers:** The inspector automatically switches to a distance panel displaying the horizontal gap, vertical gap, edge-to-edge distance, and spatial direction (`Button is to the right of Card`).
+- **Alignment & Overlap:** Detects edge alignments (top, bottom, left, right, center lines) within half-pixel precision and surfaces intersection overlaps when layers overlap.
 
 ### ⚡ 1-Click Asset Export
 - **Copy SVG:** Copies raw, optimized SVG markup straight into your clipboard for direct JSX/HTML pasting.
-- **Save SVG:** One-click download of SVG vector assets without opening Figma's nested export drawer.
+- **Save SVG:** One-click download of SVG vector assets without digging through Figma's nested menus.
 - **Save PNG @2x:** Exports high-resolution raster image files instantly.
 
 ### 🎬 Animation Export (MP4 / GIF)
-- **The Whole Top-Level Frame Is Encoded, Not the Selected Layer:** Figma's video export only accepts a frame placed directly on a page **that carries animation the encoder can play**, so the plugin **only offers this section when it detects animation in that frame** and the panel **names the frame it will encode**. Selecting a keyframed layer inside a frame produces a video of the frame it lives in, not of that layer — and the file contains the entire frame's animation.
-- **Per-Format Options That Match the API:** **MP4** offers 12/24/30/60 fps plus a LOW / MEDIUM / HIGH quality preset; **GIF** offers 8/12/15/24/30 fps plus a loop count (`∞` for the API's `0`, which loops forever). Both take a standard export scale from 50 % to 400 %, and the fps choice is re-snapped to the new format's list when you switch.
-- **Refuses Rather Than Shipping an Empty File:** the section only appears when the plugin **detects animation** in a frame placed directly on the page — a frame with no Motion timeline, animation styles, or keyframes offers no export controls at all, and neither does a frame nested in a section or a layer with no enclosing frame, since neither resolves to something Figma can encode. A prototype-only **Smart Animate** flow counts as static here: it animates the transition *between* frames rather than a timeline inside one, and Figma's encoder cannot produce video from it. If an encode fails anyway, the error names the frame it tried to encode.
+- **Layer & Top-Level Frame Export:** Export keyframe animations, video fills, and Motion timelines as MP4 or animated GIF.
+- **Fine-Grained Controls:** Choose 12/24/30/60 fps for MP4 with quality presets (Low, Medium, High) or 8/12/15/24/30 fps for GIF with loop count control (`∞` or fixed loops).
 
-### 🔗 Copyable Layer Link
-- **Deep Link to the Selected Layer:** A compact link bar sits directly under the header and shows the selected layer's canonical `https://www.figma.com/design/<key>/<file>?node-id=…` URL — the same link Figma's own **Copy link** produces. Click it to copy.
-- **Graceful Degradation:** When no file key is available — a publicly published plugin, or an unsaved draft — the bar copies the node id in **URL form** (`3844-702`) instead and says so, naming the API form (`3844:702`) that Figma's Plugin API expects.
+### 🤖 Built-in MCP Server (Cursor & Antigravity IDE)
+- Integrated Bridge Service streams design context to your favorite AI code assistants using the open **Model Context Protocol (MCP)** standard without burning official Figma seat quotas.
 
 ### 🌓 Native Figma Theme Integration
-- Automatically matches Figma's interface theme (Light & Dark modes) using native `figma.ui.themeColors`.
-
-### 🛡️ Privacy & Offline Security
-- **No External Requests:** Strictly configured with `"allowedDomains": ["none"]` in `manifest.json`.
-- **Zero Telemetry:** No analytics, trackers, or remote server dependencies. Everything executes 100% locally.
+- Uses Catppuccin color palette tokens (Latte in light mode, Mocha in dark mode) and dynamically synchronizes with Figma's native theme.
 
 ---
 
-## Architecture & Tech Stack
+## 🏗️ Architecture & Tech Stack
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                   Figma Canvas                         │
-└──────────────────────────┬─────────────────────────────┘
-                           │ figma.on("selectionchange")
-                           ▼
-┌────────────────────────────────────────────────────────┐
-│  Figma Sandbox Backend (src/code/code.ts)               │
-│  - Layer property extractors (extractors.ts)           │
-│  - Color math & conversions (color-utils.ts)           │
-│  - Bundled into dist/code.js via esbuild               │
-└──────────────────────────┬─────────────────────────────┘
-                           │ postMessage({ type: 'SELECTION_CHANGE', ... })
-                           ▼
-┌────────────────────────────────────────────────────────┐
-│  Plugin UI (src/ui/App.tsx)                            │
-│  - React 18 + TypeScript                               │
-│  - Tailwind CSS + Lucide Icons                         │
-│  - Tailwind transpiler engine (tailwind-transpiler.ts) │
-│  - Bundled into a single dist/index.html (Vite)        │
-└────────────────────────────────────────────────────────┘
+   ┌────────────────────────────────────────────────────────┐
+   │                   Figma Canvas                         │
+   └───────────────────────────┬────────────────────────────┘
+                               │ figma.on("selectionchange")
+                               ▼
+   ┌────────────────────────────────────────────────────────┐
+   │  Figma Sandbox (src/code/code.ts)                      │
+   │  - Scene-graph reader & extractors (extractors.ts)     │
+   │  - Color math & conversions (color-utils.ts)           │
+   │  - Bridge Service: HTTP polling & pushes to broker     │
+   └───────────────┬────────────────────────┬───────────────┘
+                   │ postMessage            │ HTTP :3939
+                   ▼                        ▼
+┌──────────────────────────────┐ ┌──────────────────────────────────┐
+│  React UI (src/ui/App.tsx)   │ │  MCP Broker (bridge/broker.ts)   │
+│  - Tailwind + Lucide Icons   │ │  - Streamable HTTP Transport     │
+│  - Box Model & Code Viewer   │ │  - Cached design snapshots       │
+│  - Bridge Settings Modal     │ │  - Zero seat-quota consumption   │
+│  - Bundled single dist/index │ └──────────────────┬───────────────┘
+└──────────────────────────────┘                    │
+                                     MCP Protocol   ▼
+                                  ┌───────────────────────────────┐
+                                  │ Cursor / Antigravity / pi.dev │
+                                  └───────────────────────────────┘
 ```
 
-- **Figma Plugin API**: Interacts with the canvas document model through safe, sandboxed APIs.
-- **React 18**: Reactive UI components with performant state management and hooks.
-- **Tailwind CSS & PostCSS**: Compact, responsive design system mimicking Figma's native look and feel.
-- **Lucide Icons (`lucide-react`)**: Clean, accessible developer iconography.
-- **Vite & `vite-plugin-singlefile`**: Bundles the entire React application (HTML, CSS, JavaScript) into a single, self-contained `dist/index.html` file required by Figma's iframe sandbox.
-- **esbuild**: Rapid bundling of the TypeScript sandbox backend into `dist/code.js`.
-- **Vitest**: Fast test runner for extraction logic and Tailwind transpiler rules.
+- **Figma Plugin API**: Interacts with the canvas document model safely without modifying user undo history.
+- **React 18 + TypeScript**: Single-file bundled UI running in an isolated iframe.
+- **Tailwind CSS (Catppuccin)**: Semantic theme tokens reacting to Figma's light/dark modes.
+- **Streamable HTTP MCP**: Standards-compliant MCP transport over `http://127.0.0.1:3939/mcp`.
 
 ---
 
-## Quick Start & Build Commands
+## ⚡ Quick Start & Build Commands
 
 ### Prerequisites
-- Node.js v18.0.0+
-- npm v9.0.0+
+- Node.js ≥ 18.0.0
+- npm ≥ 9.0.0
 - Figma Desktop App
 
-### Installation
-
+### 1. Clone & Install Dependencies
 ```bash
-# Clone repository
-git clone https://github.com/your-username/nodepeeker.git
+git clone https://github.com/hongducdev/nodepeeker.git
 cd nodepeeker
-
-# Install dependencies
 npm install
 ```
 
-### Build Commands
+### 2. Available Scripts
 
 | Command | Description |
 |---|---|
-| `npm run build` | Builds both the backend code (`dist/code.js`) and UI singlefile (`dist/index.html`). |
-| `npm run test` | Runs the test suite via Vitest. |
-| `npm run dev:ui` | Starts a Vite dev server for browser-based UI development and styling. |
-| `npm run watch:code` | Watches and rebuilds `src/code/code.ts` via esbuild on file changes. |
-| `npm run build:code` | Compiles the Figma sandbox backend code once. |
-| `npm run build:ui` | Compiles the React UI into `dist/index.html`. |
-| `npm run typecheck` | Runs the TypeScript compiler (`tsc --noEmit`) to verify types. |
+| `npm run build` | **Full build:** Compiles sandbox (`dist/code.js`) and UI (`dist/index.html`). |
+| `npm run build:code` | Compiles sandbox TypeScript code via esbuild into `dist/code.js`. |
+| `npm run build:ui` | Bundles React UI into a single self-contained `dist/index.html`. |
+| `npm run bridge` | **Builds and starts the local MCP broker** on `127.0.0.1:3939`. |
+| `npm run bridge:build` | Compiles `bridge/broker.ts` into `bridge/dist/broker.mjs`. |
+| `npm test` | Runs the full Vitest unit & integration test suite (22 test files). |
+| `npm run typecheck` | Checks TypeScript types without emitting files (`tsc --noEmit`). |
+| `npm run watch:code` | Watches and rebuilds sandbox code on change. |
+| `npm run dev:ui` | Starts a Vite dev server for browser UI styling at `http://localhost:5173`. |
 
 ---
 
-## Step-by-Step Installation in Figma Desktop
+## 🔌 Step-by-Step Installation in Figma
 
-1. **Build the plugin bundle**:
+1. **Build the plugin**:
    ```bash
    npm run build
    ```
-   Ensure that `dist/code.js` and `dist/index.html` have been created.
+   Ensure that `dist/code.js` and `dist/index.html` exist.
 
 2. **Open Figma Desktop**:
-   Open any Figma document or draft file.
+   Open any design file or draft.
 
-3. **Import Plugin Manifest**:
-   - Click the Figma icon menu in the top-left (or press `Ctrl + /` on Windows / `Cmd + /` on macOS).
+3. **Import Plugin from Manifest**:
+   - Click the top-left Figma menu (or press `Ctrl + /` on Windows / `Cmd + /` on Mac).
    - Navigate to **Plugins > Development > Import plugin from manifest...**.
    - Select the `manifest.json` file located in the root of this project.
 
-4. **Launch the Plugin**:
-   - Press `Shift + I` to open Figma's Resources menu, switch to the **Plugins** tab, and select **NodePeeker**.
-   - Alternatively, right-click on the canvas -> **Plugins > Development > NodePeeker**.
-
-5. **Start Inspecting**:
-   - Click any frame, component, button, text, or vector node on the canvas.
-   - Inspect the box model, switch color formats, copy CSS or Tailwind code, and export assets instantly.
+4. **Launch NodePeeker**:
+   - Right-click canvas -> **Plugins > Development > NodePeeker** (or press `Ctrl + Alt + P` / `Cmd + Option + P`).
 
 ---
 
-## Project Structure
+## 🤖 Local MCP Bridge (Cursor, Antigravity IDE, pi.dev)
+
+### Why NodePeeker MCP?
+
+Figma's official MCP server is capped by **seat** (20 tool calls per month on Starter plans). NodePeeker bypasses this limit by routing queries locally through Figma's Plugin API:
+- **Unlimited tool calls:** No seat limits, no extra subscription.
+- **Real-time synchronization:** Selection changes in Figma push directly to the local broker.
+- **Token-budget views:** Returns compact `summary` (~60 tokens), `tailwind` (~120 tokens), `css` (~400 tokens), or `full` inspection data.
+
+---
+
+### Step 1: Start the MCP Broker
+
+In your terminal, run:
+```bash
+npm run bridge
+```
+
+The broker will print its connection information and access token:
+```text
+  NodePeeker Bridge broker
+  MCP   http://127.0.0.1:3939/mcp
+  token 0R4_GbTaT7oH5Y7B4E-Sjn0dv4n-CDKT
+
+  Cursor / pi.dev config:
+    { "url": "http://127.0.0.1:3939/mcp",
+      "headers": { "X-Bridge-Token": "0R4_GbTaT7oH5Y7B4E-Sjn0dv4n-CDKT" } }
+```
+
+> **Note:** The token is generated automatically on first run and stored locally in `bridge/.token` (gitignored). Keep this terminal running while using AI assistants.
+
+---
+
+### Step 2: Connect Figma Plugin to Broker
+
+1. In Figma, open the **NodePeeker** plugin.
+2. Click the **MCP (Bot)** icon on the header (or click **SETTINGS** on the start screen).
+3. Paste the token printed by the broker and click **Save & Connect**.
+4. The indicator turns **Green (Connected)**.
+5. ⚠️ **Keep the NodePeeker plugin window open** while chatting with your AI assistant.
+
+---
+
+### Step 3: Configure Your AI Assistant
+
+#### 1. Cursor
+
+Cursor supports Streamable HTTP MCP servers via config files or UI settings:
+
+**Option A: Global Configuration (Recommended)**
+Add to `~/.cursor/mcp.json` (`C:\Users\<YourUsername>\.cursor\mcp.json` on Windows):
+
+```json
+{
+  "mcpServers": {
+    "nodepeeker": {
+      "url": "http://127.0.0.1:3939/mcp",
+      "headers": {
+        "X-Bridge-Token": "<YOUR_TOKEN_HERE>"
+      }
+    }
+  }
+}
+```
+
+**Option B: Project Configuration**
+Add `.cursor/mcp.json` to the root of any project you open in Cursor.
+
+**Verify in Cursor:**
+Open **Cursor Settings** (`Ctrl + ,`) -> **Features** -> **MCP Servers**. You should see `nodepeeker` with a green indicator.
+
+---
+
+#### 2. Antigravity IDE
+
+Antigravity IDE natively uses Streamable HTTP transport configured in its global MCP config file.
+
+**Configuration File:**
+Edit `~/.gemini/config/mcp_config.json` (`C:\Users\<YourUsername>\.gemini\config\mcp_config.json` on Windows):
+
+```json
+{
+  "mcpServers": {
+    "nodepeeker": {
+      "serverUrl": "http://127.0.0.1:3939/mcp",
+      "headers": {
+        "X-Bridge-Token": "<YOUR_TOKEN_HERE>"
+      }
+    }
+  }
+}
+```
+
+> **Note:** Antigravity IDE uses the key `"serverUrl"` (instead of `"url"`).
+
+**Verify in Antigravity IDE:**
+1. Restart Antigravity IDE (to reload language server configs).
+2. Go to **Additional Options (...) > MCP Servers** in the chat sidebar.
+3. You will see `nodepeeker` active with its tools ready.
+
+---
+
+#### 3. pi.dev
+
+Add to `~/.config/mcp/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "nodepeeker": {
+      "url": "http://127.0.0.1:3939/mcp",
+      "headers": {
+        "X-Bridge-Token": "<YOUR_TOKEN_HERE>"
+      }
+    }
+  }
+}
+```
+
+---
+
+### Available MCP Tools
+
+Once connected, your AI assistant can use the following tools:
+
+| Tool | Parameters | Description |
+|---|---|---|
+| `nodepeeker_status` | _none_ | Checks if NodePeeker is connected in Figma and returns the active file name and file key. |
+| `nodepeeker_get_selection` | `view?: "summary" \| "tailwind" \| "css" \| "full"` | Returns design inspection data for the currently selected layer on Figma canvas. |
+| `nodepeeker_get_node` | `nodeId: string`, `view?: "summary" \| "tailwind" \| "css" \| "full"` | Inspects any specific layer by its Figma ID (e.g., `"1:2"` or `"1-2"`), including child component hierarchy. |
+
+#### Example Prompts for AI Chat:
+- *"Check if Figma is connected and what file is open."*
+- *"Look at the layer I currently have selected in Figma and generate a React Tailwind component for it."*
+- *"Inspect node 349:399 in Figma and extract its color scheme and typography."*
+
+---
+
+## 🛠️ Troubleshooting MCP
+
+| Issue | Cause | Fix |
+|---|---|---|
+| `PLUGIN_DISCONNECTED` error in Cursor / Antigravity | The plugin window in Figma was closed or minimized. | **Figma terminates plugins when their window is closed.** Open NodePeeker in Figma (`Ctrl+Alt+P`) and keep the window open on the canvas. |
+| Status shows `NEEDS TOKEN` in Figma | Token was not saved yet in Figma client storage. | Copy the token from terminal (`npm run bridge`), click the MCP icon in NodePeeker, paste it, and click **Save & Connect**. |
+| `401 Unauthorized` | Missing or incorrect `X-Bridge-Token` header in client config. | Ensure the token in your AI assistant config matches the one in `bridge/.token`. |
+| Connection drops when switching windows | Background throttling in Electron/Figma. | NodePeeker uses an extended 30-second TTL. If it stutters, right-click the plugin window and select **Reload plugin** (`Ctrl + R`). |
+| Antigravity IDE does not show tools | Antigravity was not restarted after editing `mcp_config.json`. | Restart Antigravity IDE so its Language Server re-reads global MCP configs. |
+
+---
+
+## 📁 Project Structure
 
 ```
 figma-dev-mod/
-├── dist/                          # Compiled artifacts loaded by Figma (gitignored)
-│   ├── code.js                    # Backend sandbox entry point
-│   └── index.html                 # Inlined UI bundle
-├── docs/                          # Project documentation
-│   ├── installation-guide.md      # Detailed end-user installation & usage
-│   ├── brainstorm-summary-...     # Design rationale and feature roadmap
-│   └── journals/                  # Per-session engineering log & decisions
-├── plans/                         # Execution plans (plan.md + phase-0N-*.md)
 ├── src/
-│   ├── code/                      # Figma sandbox thread (no DOM access)
+│   ├── code/                      # Figma sandbox thread (DOM-free)
+│   │   ├── bridge-service.ts      # Integrated Bridge service (polling & pushes)
 │   │   ├── code.ts                # Main plugin lifecycle & message router
 │   │   ├── color-utils.ts         # HEX, RGB, HSL conversions
-│   │   └── extractors.ts          # Box model, fills, typography & border extractor
-│   ├── ui/                        # Iframe UI thread (React)
-│   │   ├── components/            # UI components
-│   │   │   ├── BorderStyle.tsx    # Border style summary + live preview
-│   │   │   ├── BoxModel.tsx       # Visual box model diagram
-│   │   │   ├── CodeHighlighter.tsx # CSS & Tailwind syntax highlighting
-│   │   │   ├── CodeViewer.tsx     # Tailwind & CSS code tab panels
-│   │   │   ├── ColorPalette.tsx   # Color swatches with format toggles
-│   │   │   ├── EmptyState.tsx     # Placeholder when no node is selected
-│   │   │   ├── Header.tsx         # Layer name, type, dimensions & shortcuts
-│   │   │   ├── QuickExport.tsx    # SVG & PNG export buttons
-│   │   │   └── Toast.tsx          # Copy feedback toasts
-│   │   ├── hooks/                 # Custom React hooks
-│   │   │   ├── useClipboard.ts    # Copy helper with toast trigger
-│   │   │   └── useFigmaTheme.ts   # Dark/light theme observer
-│   │   ├── App.tsx                # Main UI container
-│   │   ├── index.html             # Vite HTML entry
-│   │   ├── main.tsx               # React DOM root entry
-│   │   └── styles.css             # Tailwind base styles
+│   │   ├── extractors.ts          # Box model, fills, typography & border extractor
+│   │   └── video-frame.ts         # Animation and video frame detection
 │   ├── types/
 │   │   └── messages.ts            # Shared bidirectional messaging contracts
+│   ├── ui/                        # React UI iframe thread
+│   │   ├── components/            # UI components (+ BridgeSettingsModal.tsx)
+│   │   ├── hooks/                 # Custom React hooks (theme, clipboard)
+│   │   ├── App.tsx                # Main UI root component
+│   │   ├── index.html             # Vite entry HTML
+│   │   └── styles.css             # Tailwind CSS & Catppuccin theme variables
 │   └── utils/
-│       ├── tailwind-scale.ts      # Spacing, radius & font size mappings
-│       └── tailwind-transpiler.ts # CSS-to-Tailwind utility class generator
-├── tests/                         # Vitest unit tests
-├── AGENTS.md                      # Contributor & AI-assistant guidelines
-├── manifest.json                  # Figma plugin configuration
-├── package.json                   # Scripts and dependencies
-├── postcss.config.js              # PostCSS (Tailwind + autoprefixer)
+│       ├── distance.ts            # Pair measurement geometry
+│       ├── node-link.ts           # Deep link URL builder
+│       ├── tailwind-scale.ts      # Spacing, radius & font size scales
+│       ├── tailwind-transpiler.ts # CSS-to-Tailwind transpiler engine
+│       └── video-options.ts       # Video export FPS & quality presets
+├── bridge/                        # MCP Broker (Node.js backend for AI agents)
+│   ├── broker.ts                  # Streamable HTTP MCP server (:3939)
+│   ├── protocol.ts                # Wire protocol & types
+│   ├── state.ts                   # Snapshot cache & command queue
+│   ├── project.ts                 # Projection views (summary, tailwind, css, full)
+│   └── fake-plugin.mjs            # Standalone protocol test harness
+├── tests/                         # 22 Vitest test suites (222 tests - 100% pass)
+├── dist/                          # Compiled plugin bundle (dist/code.js, dist/index.html)
+├── manifest.json                  # Figma plugin manifest
+├── package.json                   # Scripts & dependencies
 ├── tailwind.config.js             # Tailwind CSS configuration
-├── tsconfig.json                  # TypeScript compiler options
-├── vite.config.ts                 # Vite bundler config with singlefile plugin
-└── vitest.config.ts               # Vitest test runner configuration
+├── tsconfig.json                  # TypeScript compiler settings
+└── vite.config.ts                 # Vite single-file bundler config
 ```
 
 ---
 
-## Hot Reloading & Development Tips
-
-- **Reloading UI**: While focused on the open plugin window in Figma, press `Ctrl + R` (Windows) or `Cmd + R` (macOS) to reload immediately without reopening the plugin.
-- **Inspecting UI Elements**: In Figma Desktop, right-click inside the plugin window and choose **Inspect** (or press `Ctrl + Shift + I` / `Cmd + Option + I`) to open Chromium DevTools for debugging the plugin iframe.
-- **Browser-Only Prototyping**: Run `npm run dev:ui` and open `http://localhost:5173` to test component layout with mocked data in standard browser tabs.
-
----
-
-## License
+## 📄 License
 
 MIT License. Free for personal and commercial use.
