@@ -68,11 +68,11 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({ code, language
             const tokens = tokenizeCssValue(value);
 
             return (
-              <div key={idx} className="flex leading-relaxed hover:bg-surface0/40 px-1 rounded transition-colors">
+              <div key={idx} className="flex leading-relaxed hover:bg-surface0/40 px-1 rounded transition-colors whitespace-pre">
                 <span className="select-none text-overlay1 w-5 text-right pr-2 shrink-0 text-[10px]">
                   {idx + 1}
                 </span>
-                <div className="flex-1">
+                <div className="flex-1 whitespace-pre">
                   <span className="text-blue font-medium">{property}</span>
                   <span className="text-overlay1">:</span>
                   <span>{tokens}</span>

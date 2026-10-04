@@ -376,27 +376,32 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
       </div>
 
       {hasVariables && (
-        <div className="mt-1.5 pt-1.5 border-t border-surface0/60 flex flex-wrap items-center gap-1">
+        <div className="mt-1.5 pt-1.5 border-t border-surface0/60 flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
           <span className="text-[9px] font-mono uppercase text-overlay1 shrink-0">Tokens:</span>
-          {data.variables!.map((v, i) => {
-            const displayToken = isMobileTab
-              ? getPlatformToken(v, tab as 'react-native' | 'flutter' | 'swiftui' | 'compose')
-              : v.cssVariable;
-            return (
+          {(() => {
+            const seen = new Set<string>();
+            const unique: Array<{ displayToken: string; variableName: string }> = [];
+            for (const v of data.variables!) {
+              const displayToken = isMobileTab
+                ? getPlatformToken(v, tab as 'react-native' | 'flutter' | 'swiftui' | 'compose')
+                : v.cssVariable;
+              if (!seen.has(displayToken)) {
+                seen.add(displayToken);
+                unique.push({ displayToken, variableName: v.variableName });
+              }
+            }
+            return unique.map((item, i) => (
               <button
-                key={`${v.id}-${i}`}
+                key={`${item.displayToken}-${i}`}
                 type="button"
-                onClick={() => onCopy(displayToken, v.variableName)}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface0/80 hover:bg-surface1 text-[9px] font-mono text-subtext0 hover:text-text transition border border-surface1/60"
-                title={`Click to copy ${displayToken} (${v.variableName})`}
+                onClick={() => onCopy(item.displayToken, item.variableName)}
+                className="inline-flex items-center px-1.5 py-0.5 rounded bg-surface0 hover:bg-surface1 text-[9px] font-mono text-peach hover:text-text transition border border-surface1 shrink-0"
+                title={`${item.displayToken} (${item.variableName})\nClick to copy`}
               >
-                <span className="text-peach font-medium">{displayToken}</span>
-                {v.variableName && (
-                  <span className="text-overlay1 font-sans text-[8px]">({v.variableName})</span>
-                )}
+                <span>{item.displayToken}</span>
               </button>
-            );
-          })}
+            ));
+          })()}
         </div>
       )}
     </div>

@@ -107,9 +107,9 @@ describe('React Native Transpiler', () => {
       ],
     });
     const code = transpileToReactNative(frameWithVars, { useTokens: true });
-    expect(code).toContain('backgroundColor: tokens.colorsPrimary500');
+    expect(code).toContain('backgroundColor: tokens.primary500');
     expect(code).toContain('borderRadius: tokens.radiusLg');
-    expect(code).toContain('borderColor: tokens.colorsBorder');
+    expect(code).toContain('borderColor: tokens.border');
   });
 });
 
@@ -144,9 +144,9 @@ describe('Flutter Transpiler', () => {
       ],
     });
     const code = transpileToFlutter(frameWithVars, { useTokens: true });
-    expect(code).toContain('color: AppColors.colorsPrimary500');
+    expect(code).toContain('color: AppColors.primary500');
     expect(code).toContain('borderRadius: BorderRadius.circular(AppRadius.radiusLg)');
-    expect(code).toContain('border: Border.all(color: AppColors.colorsBorder');
+    expect(code).toContain('border: Border.all(color: AppColors.border');
   });
 });
 
@@ -175,7 +175,7 @@ describe('SwiftUI Transpiler', () => {
       ],
     });
     const code = transpileToSwiftUI(frameWithVars, { useTokens: true });
-    expect(code).toContain('.background(Color("colors/primary-500"))');
+    expect(code).toContain('.background(Color("primary-500"))');
     expect(code).toContain('.cornerRadius(Theme.radiusLg)');
   });
 });
@@ -205,7 +205,7 @@ describe('Compose Transpiler', () => {
       ],
     });
     const code = transpileToCompose(frameWithVars, { useTokens: true });
-    expect(code).toContain('.background(color = AppColors.ColorsPrimary500');
+    expect(code).toContain('.background(color = AppColors.Primary500');
     expect(code).toContain('RoundedCornerShape(AppRadius.RadiusLg)');
   });
 });
