@@ -28,7 +28,10 @@ async function resolveVariable(alias: VariableAlias | undefined): Promise<Variab
   return null;
 }
 
-export async function extractBoundVariables(node: SceneNode): Promise<BoundVariableToken[]> {
+export async function extractBoundVariables(
+  node: SceneNode,
+  css?: Record<string, string>
+): Promise<BoundVariableToken[]> {
   const tokens: BoundVariableToken[] = [];
   const cache = new Map<string, Variable | null>();
 
@@ -83,7 +86,7 @@ export async function extractBoundVariables(node: SceneNode): Promise<BoundVaria
     const scalarFields = [
       'width', 'height', 'itemSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
       'cornerRadius', 'topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius',
-      'strokeWeight', 'opacity', 'fontSize'
+      'strokeWeight', 'opacity', 'fontSize', 'fontFamily', 'fontWeight', 'lineHeight', 'letterSpacing'
     ];
     for (const f of scalarFields) {
       if (bv[f]) {
@@ -104,7 +107,30 @@ export async function extractBoundVariables(node: SceneNode): Promise<BoundVaria
     }
   }
 
-  // 2. Also check paints directly (SolidPaint.boundVariables.color)
+  // 2. Check TextStyle boundVariables
+  if ('textStyleId' in node && typeof node.textStyleId === 'string' && node.textStyleId) {
+    try {
+      let textStyle: BaseStyle | null = null;
+      if (typeof figma.getStyleByIdAsync === 'function') {
+        textStyle = await figma.getStyleByIdAsync(node.textStyleId);
+      } else if (typeof figma.getStyleById === 'function') {
+        textStyle = figma.getStyleById(node.textStyleId);
+      }
+      if (textStyle && 'boundVariables' in textStyle && textStyle.boundVariables) {
+        const tbv = textStyle.boundVariables as Record<string, unknown>;
+        const fontFields = ['fontSize', 'fontFamily', 'fontWeight', 'lineHeight', 'letterSpacing'];
+        for (const ff of fontFields) {
+          if (tbv[ff]) {
+            await addToken(ff, tbv[ff] as VariableAlias);
+          }
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  // 3. Check paints directly (SolidPaint.boundVariables.color)
   if ('fills' in node && Array.isArray(node.fills)) {
     for (const p of node.fills) {
       if (p.visible !== false && p.type === 'SOLID' && p.boundVariables?.color) {
@@ -116,6 +142,36 @@ export async function extractBoundVariables(node: SceneNode): Promise<BoundVaria
     for (const p of node.strokes) {
       if (p.visible !== false && p.type === 'SOLID' && p.boundVariables?.color) {
         await addToken('stroke', p.boundVariables.color);
+      }
+    }
+  }
+
+  // 4. Fallback: Parse CSS variables produced by getCSSAsync for typography
+  if (css) {
+    const cssVarPattern = /var\((--[a-zA-Z0-9_-]+)(?:,\s*([^)]+))?\)/;
+    const fontCssMap: Array<{ field: string; prop: string }> = [
+      { field: 'fontFamily', prop: 'font-family' },
+      { field: 'fontSize', prop: 'font-size' },
+      { field: 'lineHeight', prop: 'line-height' },
+      { field: 'letterSpacing', prop: 'letter-spacing' },
+      { field: 'fontWeight', prop: 'font-weight' },
+    ];
+
+    for (const item of fontCssMap) {
+      if (!tokens.some((t) => t.field === item.field) && css[item.prop]) {
+        const m = css[item.prop].match(cssVarPattern);
+        if (m && m[1]) {
+          const rawVarName = m[1];
+          const fallbackVal = m[2] ? m[2].trim() : undefined;
+          const cleanName = rawVarName.replace(/^--/, '').replace(/-/g, ' ');
+          tokens.push({
+            id: rawVarName,
+            field: item.field,
+            variableName: cleanName,
+            cssVariable: `var(${rawVarName})`,
+            resolvedValue: fallbackVal,
+          });
+        }
       }
     }
   }
@@ -310,7 +366,7 @@ export async function extractNodeData(node: SceneNode): Promise<NodeInspectionDa
     : undefined;
 
   const colors = extractColorsFromNode(node);
-  const variables = await extractBoundVariables(node);
+  const variables = await extractBoundVariables(node, css);
   let border: BorderData | undefined;
   if ('strokes' in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
     const visibleStroke = node.strokes.find((s) => s.visible !== false);

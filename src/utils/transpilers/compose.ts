@@ -25,12 +25,28 @@ export function transpileToCompose(
     } else if (typography.fontSize) {
       styleParams.push(`    fontSize = ${typography.fontSize}.sp,`);
     }
-    if (typography.fontWeight) {
+
+    if (varMap.has('fontFamily')) {
+      styleParams.push(`    fontFamily = ${getPlatformToken(varMap.get('fontFamily')!, 'compose')},`);
+    }
+
+    if (varMap.has('fontWeight')) {
+      styleParams.push(`    fontWeight = ${getPlatformToken(varMap.get('fontWeight')!, 'compose')},`);
+    } else if (typography.fontWeight) {
       const w = String(typography.fontWeight).toLowerCase();
       if (w.includes('bold')) styleParams.push(`    fontWeight = FontWeight.Bold,`);
       else if (w.includes('semi')) styleParams.push(`    fontWeight = FontWeight.SemiBold,`);
       else if (w.includes('medium')) styleParams.push(`    fontWeight = FontWeight.Medium,`);
     }
+
+    if (varMap.has('lineHeight')) {
+      styleParams.push(`    lineHeight = ${getPlatformToken(varMap.get('lineHeight')!, 'compose')},`);
+    }
+
+    if (varMap.has('letterSpacing')) {
+      styleParams.push(`    letterSpacing = ${getPlatformToken(varMap.get('letterSpacing')!, 'compose')},`);
+    }
+
     if (varMap.has('fill')) {
       styleParams.push(`    color = ${getPlatformToken(varMap.get('fill')!, 'compose')},`);
     } else {

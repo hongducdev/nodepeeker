@@ -28,17 +28,26 @@ export function getPlatformToken(
       if (token.codeSyntax?.android) return token.codeSyntax.android;
       if (token.field === 'fill' || token.field === 'stroke') return `AppColors.${camel}`;
       if (token.field.includes('Radius') || token.field === 'cornerRadius') return `AppRadius.${camel}`;
+      if (['fontSize', 'fontFamily', 'fontWeight', 'lineHeight', 'letterSpacing'].includes(token.field)) {
+        return `AppTypography.${camel}`;
+      }
       return `AppSpacing.${camel}`;
 
     case 'swiftui':
       if (token.codeSyntax?.ios) return token.codeSyntax.ios;
       if (token.field === 'fill' || token.field === 'stroke') return `Color("${token.variableName}")`;
+      if (['fontSize', 'fontFamily', 'fontWeight', 'lineHeight', 'letterSpacing'].includes(token.field)) {
+        return `Theme.${camel}`;
+      }
       return `Theme.${camel}`;
 
     case 'compose':
       if (token.codeSyntax?.android) return token.codeSyntax.android;
       if (token.field === 'fill' || token.field === 'stroke') return `AppColors.${pascal}`;
       if (token.field.includes('Radius') || token.field === 'cornerRadius') return `AppRadius.${pascal}`;
+      if (['fontSize', 'fontFamily', 'fontWeight', 'lineHeight', 'letterSpacing'].includes(token.field)) {
+        return `AppTypography.${pascal}`;
+      }
       return `AppSpacing.${pascal}`;
 
     default:

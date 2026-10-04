@@ -178,13 +178,31 @@ export function transpileToReactNative(
     } else if (typography.fontSize) {
       styles.push(`  fontSize: ${typography.fontSize},`);
     }
-    if (typography.fontFamily) styles.push(`  fontFamily: '${typography.fontFamily}',`);
-    if (typography.fontWeight) {
+
+    if (varMap.has('fontFamily')) {
+      styles.push(`  fontFamily: ${getPlatformToken(varMap.get('fontFamily')!, 'react-native')},`);
+    } else if (typography.fontFamily) {
+      styles.push(`  fontFamily: '${typography.fontFamily}',`);
+    }
+
+    if (varMap.has('fontWeight')) {
+      styles.push(`  fontWeight: ${getPlatformToken(varMap.get('fontWeight')!, 'react-native')},`);
+    } else if (typography.fontWeight) {
       styles.push(`  fontWeight: '${String(typography.fontWeight)}',`);
     }
-    if (typeof typography.lineHeight === 'number') {
+
+    if (varMap.has('lineHeight')) {
+      styles.push(`  lineHeight: ${getPlatformToken(varMap.get('lineHeight')!, 'react-native')},`);
+    } else if (typeof typography.lineHeight === 'number') {
       styles.push(`  lineHeight: ${Math.round(typography.lineHeight)},`);
     }
+
+    if (varMap.has('letterSpacing')) {
+      styles.push(`  letterSpacing: ${getPlatformToken(varMap.get('letterSpacing')!, 'react-native')},`);
+    } else if (typeof typography.letterSpacing === 'number' && typography.letterSpacing !== 0) {
+      styles.push(`  letterSpacing: ${typography.letterSpacing},`);
+    }
+
     if (typography.textAlign) {
       styles.push(`  textAlign: '${typography.textAlign.toLowerCase()}',`);
     }

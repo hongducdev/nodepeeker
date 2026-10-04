@@ -19,20 +19,32 @@ export function transpileToSwiftUI(
 
   if (type === 'TEXT' && typography) {
     const textMods: string[] = [];
-    if (varMap.has('fontSize')) {
+    if (varMap.has('fontSize') && varMap.has('fontFamily')) {
+      textMods.push(`.font(.custom(${getPlatformToken(varMap.get('fontFamily')!, 'swiftui')}, size: ${getPlatformToken(varMap.get('fontSize')!, 'swiftui')}))`);
+    } else if (varMap.has('fontSize')) {
       textMods.push(`.font(.system(size: ${getPlatformToken(varMap.get('fontSize')!, 'swiftui')}))`);
+    } else if (varMap.has('fontFamily') && typography.fontSize) {
+      textMods.push(`.font(.custom(${getPlatformToken(varMap.get('fontFamily')!, 'swiftui')}, size: ${typography.fontSize}))`);
     } else if (typography.fontFamily && typography.fontSize) {
       textMods.push(`.font(.custom("${typography.fontFamily}", size: ${typography.fontSize}))`);
     } else if (typography.fontSize) {
       textMods.push(`.font(.system(size: ${typography.fontSize}))`);
     }
 
-    if (typography.fontWeight) {
+    if (varMap.has('fontWeight')) {
+      textMods.push(`.fontWeight(${getPlatformToken(varMap.get('fontWeight')!, 'swiftui')})`);
+    } else if (typography.fontWeight) {
       const w = String(typography.fontWeight).toLowerCase();
       if (w.includes('bold')) textMods.push(`.fontWeight(.bold)`);
       else if (w.includes('semi')) textMods.push(`.fontWeight(.semibold)`);
       else if (w.includes('medium')) textMods.push(`.fontWeight(.medium)`);
       else if (w.includes('light')) textMods.push(`.fontWeight(.light)`);
+    }
+
+    if (varMap.has('letterSpacing')) {
+      textMods.push(`.kerning(${getPlatformToken(varMap.get('letterSpacing')!, 'swiftui')})`);
+    } else if (typeof typography.letterSpacing === 'number' && typography.letterSpacing !== 0) {
+      textMods.push(`.kerning(${typography.letterSpacing})`);
     }
 
     if (varMap.has('fill')) {

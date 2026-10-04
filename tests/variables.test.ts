@@ -33,6 +33,27 @@ describe('extractBoundVariables', () => {
     if (id === 'var:3') {
       return { id: 'var:3', name: 'radius/lg', codeSyntax: {} };
     }
+    if (id === 'var:font1') {
+      return { id: 'var:font1', name: 'Static/Body Large/Size', codeSyntax: {} };
+    }
+    if (id === 'var:font2') {
+      return { id: 'var:font2', name: 'Static/Body Large/Font', codeSyntax: {} };
+    }
+    return null;
+  });
+
+  const getStyleByIdAsync = vi.fn(async (id: string) => {
+    if (id === 'style:text1') {
+      return {
+        id: 'style:text1',
+        type: 'TEXT',
+        name: 'Body Large',
+        boundVariables: {
+          fontSize: { type: 'VARIABLE_ALIAS', id: 'var:font1' },
+          fontFamily: { type: 'VARIABLE_ALIAS', id: 'var:font2' },
+        },
+      };
+    }
     return null;
   });
 
@@ -41,6 +62,7 @@ describe('extractBoundVariables', () => {
       variables: {
         getVariableByIdAsync,
       },
+      getStyleByIdAsync,
     });
   });
 
@@ -85,6 +107,38 @@ describe('extractBoundVariables', () => {
 
     const tokens = await extractBoundVariables(mockNode);
     expect(tokens).toEqual([]);
+  });
+
+  it('extracts typography variables from textStyleId boundVariables', async () => {
+    const mockTextNode = {
+      id: '1:3',
+      name: 'Heading',
+      type: 'TEXT',
+      textStyleId: 'style:text1',
+    } as unknown as SceneNode;
+
+    const tokens = await extractBoundVariables(mockTextNode);
+    expect(tokens.some((t) => t.field === 'fontSize' && t.variableName === 'Static/Body Large/Size')).toBe(true);
+    expect(tokens.some((t) => t.field === 'fontFamily' && t.variableName === 'Static/Body Large/Font')).toBe(true);
+  });
+
+  it('extracts typography variables from getCSSAsync fallback', async () => {
+    const mockTextNode = {
+      id: '1:4',
+      name: 'Fallback Text',
+      type: 'TEXT',
+    } as unknown as SceneNode;
+
+    const css = {
+      'font-size': 'var(--Static-Body-Large-Size, 16px)',
+      'font-family': 'var(--Static-Body-Large-Font, Roboto)',
+      'line-height': 'var(--Static-Body-Large-Line-Height, 24px)',
+    };
+
+    const tokens = await extractBoundVariables(mockTextNode, css);
+    expect(tokens.some((t) => t.field === 'fontSize' && t.cssVariable === 'var(--Static-Body-Large-Size)')).toBe(true);
+    expect(tokens.some((t) => t.field === 'fontFamily' && t.cssVariable === 'var(--Static-Body-Large-Font)')).toBe(true);
+    expect(tokens.some((t) => t.field === 'lineHeight' && t.cssVariable === 'var(--Static-Body-Large-Line-Height)')).toBe(true);
   });
 });
 

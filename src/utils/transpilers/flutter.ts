@@ -23,12 +23,34 @@ export function transpileToFlutter(
     } else if (typography.fontSize) {
       textParams.push(`  fontSize: ${typography.fontSize},`);
     }
-    if (typography.fontFamily) textParams.push(`  fontFamily: '${typography.fontFamily}',`);
-    if (typography.fontWeight) {
+
+    if (varMap.has('fontFamily')) {
+      textParams.push(`  fontFamily: ${getPlatformToken(varMap.get('fontFamily')!, 'flutter')},`);
+    } else if (typography.fontFamily) {
+      textParams.push(`  fontFamily: '${typography.fontFamily}',`);
+    }
+
+    if (varMap.has('fontWeight')) {
+      textParams.push(`  fontWeight: ${getPlatformToken(varMap.get('fontWeight')!, 'flutter')},`);
+    } else if (typography.fontWeight) {
       const w = String(typography.fontWeight);
       const weightNum = w.replace(/\D/g, '') || (w.toLowerCase().includes('bold') ? '700' : '400');
       textParams.push(`  fontWeight: FontWeight.w${weightNum},`);
     }
+
+    if (varMap.has('lineHeight')) {
+      textParams.push(`  height: ${getPlatformToken(varMap.get('lineHeight')!, 'flutter')},`);
+    } else if (typeof typography.lineHeight === 'number' && typography.fontSize) {
+      const h = Math.round((typography.lineHeight / typography.fontSize) * 100) / 100;
+      textParams.push(`  height: ${h},`);
+    }
+
+    if (varMap.has('letterSpacing')) {
+      textParams.push(`  letterSpacing: ${getPlatformToken(varMap.get('letterSpacing')!, 'flutter')},`);
+    } else if (typeof typography.letterSpacing === 'number' && typography.letterSpacing !== 0) {
+      textParams.push(`  letterSpacing: ${typography.letterSpacing},`);
+    }
+
     if (varMap.has('fill')) {
       textParams.push(`  color: ${getPlatformToken(varMap.get('fill')!, 'flutter')},`);
     } else {
