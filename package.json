@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.100.0",
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@types/node": "^22.20.4",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
